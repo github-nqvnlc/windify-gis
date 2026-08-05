@@ -305,4 +305,56 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
     render(<TestComponent />);
     expect(result).toEqual({ engine: null, isReady: false, engineType: null });
   });
+
+  it('renders error message when engine import fails (missing peer dependency)', async () => {
+    // Temporarily override the leaflet mock to simulate a missing module
+    vi.doMock('../core/leaflet', () => {
+      throw new Error('Could not resolve "leaflet". Is it installed?');
+    });
+
+    // Re-import WindifyMap to pick up the new mock
+    const { WindifyMap: WindifyMapFresh } = await import('./WindifyMap');
+
+    const { container } = render(
+      <WindifyMapFresh engine="leaflet" center={[106.660172, 10.762622]} zoom={10} />,
+    );
+
+    await waitFor(() => {
+      const alert = container.querySelector('[role="alert"]');
+      expect(alert).not.toBeNull();
+      expect(alert?.textContent).toContain('leaflet');
+      expect(alert?.textContent).toContain('npm install');
+    });
+
+    // Restore the original mock
+    vi.doUnmock('../core/leaflet');
+  });
+
+  it('clears error state when engine prop changes to a valid engine', async () => {
+    // First mock leaflet to fail
+    vi.doMock('../core/leaflet', () => {
+      throw new Error('Could not resolve "leaflet". Is it installed?');
+    });
+
+    const { WindifyMap: WindifyMapFresh } = await import('./WindifyMap');
+
+    const { container, rerender } = render(
+      <WindifyMapFresh engine="leaflet" center={[106.660172, 10.762622]} zoom={10} />,
+    );
+
+    await waitFor(() => {
+      const alert = container.querySelector('[role="alert"]');
+      expect(alert).not.toBeNull();
+    });
+
+    // Restore leaflet mock and switch to maplibre (which works)
+    vi.doUnmock('../core/leaflet');
+
+    rerender(<WindifyMapFresh engine="maplibre" center={[106.660172, 10.762622]} zoom={10} />);
+
+    await waitFor(() => {
+      const alert = container.querySelector('[role="alert"]');
+      expect(alert).toBeNull();
+    });
+  });
 });

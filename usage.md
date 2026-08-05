@@ -2,6 +2,10 @@
 
 Tài liệu này chứa các quy tắc và hướng dẫn dành riêng cho AI Agents khi thao tác trên source code của dự án `windify-gis`. Hãy đọc kỹ trước khi thực hiện bất kỳ thay đổi nào.
 
+## **QUAN TRỌNG:**
+
+- Không dùng tài liệu này để tạo task, chỉ người dùng mới có thể yêu cầu tạo task bằng agent trong folder `implements\v1.0.0\Task`.
+
 ## 1. Kiến trúc dự án (Architecture)
 
 - **windify-gis** là một package bản đồ hỗ trợ đa nền tảng (`leaflet` và `maplibre-gl`).

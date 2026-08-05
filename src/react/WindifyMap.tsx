@@ -58,6 +58,7 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const instanceRef = useRef<IWindifyMapEngine | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
   const [contextValue, setContextValue] = useState<WindifyMapContextValue>({
     engine: null,
     isReady: false,
@@ -75,6 +76,7 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
     if (!container) return;
 
     let isCancelled = false;
+    setInitError(null);
 
     const initEngine = async () => {
       let instance: IWindifyMapEngine | null = null;
@@ -114,9 +116,25 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
           });
           onMapReadyRef.current?.(instance);
         }
-      } catch (error) {
+      } catch (err) {
         if (!isCancelled) {
-          console.error(`Failed to initialize ${engine} engine:`, error);
+          const errorMessage = err instanceof Error ? err.message : String(err);
+
+          let userMessage: string;
+          if (engine === 'leaflet' && /leaflet/i.test(errorMessage)) {
+            userMessage =
+              '❌ Windify GIS: Engine "leaflet" requires the "leaflet" package to be installed.\n' +
+              'Run: npm install leaflet';
+          } else if (engine === 'maplibre' && /maplibre/i.test(errorMessage)) {
+            userMessage =
+              '❌ Windify GIS: Engine "maplibre" requires the "maplibre-gl" package to be installed.\n' +
+              'Run: npm install maplibre-gl';
+          } else {
+            userMessage = `❌ Windify GIS: Failed to initialize "${engine}" engine: ${errorMessage}`;
+          }
+
+          console.error(userMessage, err);
+          setInitError(userMessage);
         }
       }
     };
@@ -177,6 +195,24 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
   return (
     <WindifyMapContext.Provider value={contextValue}>
       <div ref={containerRef} className={className} style={style}>
+        {initError && (
+          <div
+            role="alert"
+            style={{
+              padding: '20px',
+              color: '#842029',
+              backgroundColor: '#f8d7da',
+              border: '1px solid #f5c6cb',
+              borderRadius: '8px',
+              fontFamily: 'monospace',
+              fontSize: '14px',
+              whiteSpace: 'pre-wrap',
+              lineHeight: 1.6,
+            }}
+          >
+            {initError}
+          </div>
+        )}
         {children}
       </div>
     </WindifyMapContext.Provider>
