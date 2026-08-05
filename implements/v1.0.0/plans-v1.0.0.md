@@ -1,9 +1,9 @@
 # Kế hoạch Thực hiện (Implementation Plan) - windify-gis v1.0.0
 
-*Phiên bản:* 1.0.0  
-*Tác giả:* GIS Map Package BA  
-*Trạng thái:* Dự thảo Kế hoạch  
-*Người tiếp nhận thực hiện:* GIS Map Package Developer
+_Phiên bản:_ 1.0.0  
+_Tác giả:_ GIS Map Package BA  
+_Trạng thái:_ Dự thảo Kế hoạch  
+_Người tiếp nhận thực hiện:_ GIS Map Package Developer
 
 ---
 
@@ -82,6 +82,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 ### Phase 1: Khởi tạo Nền tảng & Cấu hình Build System
 
 #### Task 1.1: Khởi tạo `package.json` và Cấu hình Monorepo/Multi-entry Exports
+
 - **Mô tả kỹ thuật:**
   - Thiết lập `package.json` với các trường chuẩn: `name: "windify-gis"`, `version: "1.0.0"`, `type: "module"`.
   - Cấu hình trường `exports` để hỗ trợ subpath imports & Tree-shaking:
@@ -96,6 +97,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 - **Phân công:** [@GIS Map Package Developer](mention://agent/673f98e5-871b-40e2-bec6-6b917bc4bd5d)
 
 #### Task 1.2: Cấu hình Build Tool `tsup` hỗ trợ Multi-entry & Type Generation
+
 - **Mô tả kỹ thuật:**
   - Tạo `tsup.config.ts` hỗ trợ build các entry points:
     - `src/core/index.ts` -> `dist/core`
@@ -111,6 +113,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 - **Phân công:** [@GIS Map Package Developer](mention://agent/673f98e5-871b-40e2-bec6-6b917bc4bd5d)
 
 #### Task 1.3: Thiết lập Code Quality & Git Hooks (ESLint, Prettier, Husky)
+
 - **Mô tả kỹ thuật:**
   - Cấu hình `tsconfig.json` với strict mode (`strict: true`, `noImplicitAny: true`, `target: "ES2022"`).
   - Khởi tạo ESLint + Prettier phù hợp với TypeScript và React JSX.
@@ -125,6 +128,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 ### Phase 2: Phát triển Core Adapter Architecture & Engine Modules (Vanilla)
 
 #### Task 2.1: Định nghĩa Interface Core & Abstract Engine Class
+
 - **Mô tả kỹ thuật:**
   - Xây dựng file `src/core/types.ts`:
     - `interface MapOptions`: `container: string | HTMLElement`, `center: [number, number]` (Lng, Lat), `zoom: number`, `maxBounds?`, `minZoom?`, `maxZoom?`.
@@ -137,6 +141,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 - **Phân công:** [@GIS Map Package Developer](mention://agent/673f98e5-871b-40e2-bec6-6b917bc4bd5d)
 
 #### Task 2.2: Phát triển `WindifyLeaflet` Engine Adapter
+
 - **Mô tả kỹ thuật:**
   - Tạo `src/core/leaflet/WindifyLeaflet.ts` kế thừa `AbstractWindifyEngine`.
   - Sử dụng Leaflet SDK để khởi tạo `L.map`, cài đặt tile layer mặc định từ `baseMapUrl`.
@@ -149,6 +154,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 - **Phân công:** [@GIS Map Package Developer](mention://agent/673f98e5-871b-40e2-bec6-6b917bc4bd5d)
 
 #### Task 2.3: Phát triển `WindifyMapLibre` Engine Adapter
+
 - **Mô tả kỹ thuật:**
   - Tạo `src/core/maplibre/WindifyMapLibre.ts` kế thừa `AbstractWindifyEngine`.
   - Sử dụng MapLibre GL JS SDK để khởi tạo `new maplibregl.Map({...})` với `style` truyền vào.
@@ -165,6 +171,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 ### Phase 3: Tích hợp React Component (`<WindifyMap />`)
 
 #### Task 3.1: Xây dựng React Component `<WindifyMap />` và Custom Hooks
+
 - **Mô tả kỹ thuật:**
   - Tạo `src/react/WindifyMap.tsx`:
     - Nhận props: `engine: 'leaflet' | 'maplibre'`, `center`, `zoom`, `baseMapUrl?`, `styleUrl?`, `className?`, `style?`, `onMapReady?`.
@@ -183,6 +190,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 ### Phase 4: Kiểm thử, Tối ưu Bundle Size & CI/CD Publishing
 
 #### Task 4.1: Cấu hình và Viết Unit Tests với Vitest
+
 - **Mô tả kỹ thuật:**
   - Thiết lập `vitest.config.ts` với môi trường `jsdom` hoặc `happy-dom`.
   - Viết unit test kiểm tra khởi tạo `WindifyLeaflet` và `WindifyMapLibre` (mocking DOM & map libraries nếu cần).
@@ -193,6 +201,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 - **Phân công:** [@GIS Map Package Developer](mention://agent/673f98e5-871b-40e2-bec6-6b917bc4bd5d)
 
 #### Task 4.2: Audit Tree-shaking & Đảm bảo Tính Tách biệt Engine Bundle
+
 - **Mô tả kỹ thuật:**
   - Xây dựng kịch bản kiểm thử bundle (dùng `publint` hoặc script kiểm tra bundle size).
   - Đảm bảo khi một dự án mẫu chỉ import `windify-gis/core/leaflet` thì bundle cuối cùng tuyệt đối không chứa bất kỳ mã nào của `maplibre-gl` (và ngược lại).
@@ -202,6 +211,7 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 - **Phân công:** [@GIS Map Package Developer](mention://agent/673f98e5-871b-40e2-bec6-6b917bc4bd5d)
 
 #### Task 4.3: Thiết lập Pipeline GitHub Actions & Automatic Publish Workflow
+
 - **Mô tả kỹ thuật:**
   - Tạo workflow `.github/workflows/ci.yml`:
     - Trigger khi PR hoặc Push vào branch `main`.
@@ -218,25 +228,25 @@ Tất cả các task dưới đây được phân công chỉ định cho **Deve
 
 ## 4. Ma trận Trách nhiệm (RACI Matrix)
 
-| Hạng mục / Task | GIS Map Package PM | GIS Map Package BA | GIS Map Package Developer |
-| :--- | :---: | :---: | :---: |
-| Nghiệm thu Yêu cầu & Kế hoạch | **A** | **R** | **I** |
-| Phân tích & Thiết kế Kiến trúc | **I** | **A / R** | **C** |
-| Phase 1: Cấu hình Build & Quality Tools | **I** | **C** | **A / R** |
-| Phase 2: Khởi tạo Core Engine Adapters | **I** | **C** | **A / R** |
-| Phase 3: Phát triển React Wrapper Component | **I** | **C** | **A / R** |
-| Phase 4: Unit Test & CI/CD Pipeline | **I** | **C** | **A / R** |
+| Hạng mục / Task                             | GIS Map Package PM | GIS Map Package BA | GIS Map Package Developer |
+| :------------------------------------------ | :----------------: | :----------------: | :-----------------------: |
+| Nghiệm thu Yêu cầu & Kế hoạch               |       **A**        |       **R**        |           **I**           |
+| Phân tích & Thiết kế Kiến trúc              |       **I**        |     **A / R**      |           **C**           |
+| Phase 1: Cấu hình Build & Quality Tools     |       **I**        |       **C**        |         **A / R**         |
+| Phase 2: Khởi tạo Core Engine Adapters      |       **I**        |       **C**        |         **A / R**         |
+| Phase 3: Phát triển React Wrapper Component |       **I**        |       **C**        |         **A / R**         |
+| Phase 4: Unit Test & CI/CD Pipeline         |       **I**        |       **C**        |         **A / R**         |
 
-*Chú thích:* **R** = Responsible (Người thực hiện), **A** = Accountable (Người phê duyệt), **C** = Consulted (Người tư vấn), **I** = Informed (Người nhận thông tin).
+_Chú thích:_ **R** = Responsible (Người thực hiện), **A** = Accountable (Người phê duyệt), **C** = Consulted (Người tư vấn), **I** = Informed (Người nhận thông tin).
 
 ---
 
 ## 5. Rủi ro & Giải pháp Giảm thiểu (Risks & Mitigation)
 
 1. **Rủi ro rò rỉ mã nguồn engine không mong muốn vào Bundle:**
-   - *Nguyên nhân:* Import nhầm từ file index chung hoặc cấu hình bundler không đúng.
-   - *Giải pháp:* Phân tách file vật lý rõ ràng dưới `src/core/leaflet` và `src/core/maplibre`. Không export chung 2 engine này tại 1 file duy nhất nếu không qua dynamic import.
+   - _Nguyên nhân:_ Import nhầm từ file index chung hoặc cấu hình bundler không đúng.
+   - _Giải pháp:_ Phân tách file vật lý rõ ràng dưới `src/core/leaflet` và `src/core/maplibre`. Không export chung 2 engine này tại 1 file duy nhất nếu không qua dynamic import.
 
 2. **Rủi ro bất đồng bộ giữa Hệ tọa độ Leaflet `[Lat, Lng]` và MapLibre `[Lng, Lat]`:**
-   - *Nguyên nhân:* Leaflet theo thứ tự Y, X (Latitude, Longitude) trong khi MapLibre và GeoJSON RFC 7946 theo thứ tự X, Y (Longitude, Latitude).
-   - *Giải pháp:* Quy chuẩn 100% API public của `windify-gis` nhận `center: [longitude, latitude]` (EPSG:4326). Adapter Leaflet chịu trách nhiệm đảo chiều mảng `[lng, lat] -> [lat, lng]` nội bộ trước khi truyền vào Leaflet SDK.
+   - _Nguyên nhân:_ Leaflet theo thứ tự Y, X (Latitude, Longitude) trong khi MapLibre và GeoJSON RFC 7946 theo thứ tự X, Y (Longitude, Latitude).
+   - _Giải pháp:_ Quy chuẩn 100% API public của `windify-gis` nhận `center: [longitude, latitude]` (EPSG:4326). Adapter Leaflet chịu trách nhiệm đảo chiều mảng `[lng, lat] -> [lat, lng]` nội bộ trước khi truyền vào Leaflet SDK.
