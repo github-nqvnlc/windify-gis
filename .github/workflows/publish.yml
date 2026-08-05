@@ -69,10 +69,7 @@ jobs:
         with:
           node-version: 20.x
           cache: npm
-          # Không dùng registry-url ở đây để tránh setup-node tạo _authToken trong .npmrc
-
-      - name: Configure NPM registry (no auth token)
-        run: echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
         run: npm ci
@@ -81,4 +78,9 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM (with Provenance)
-        run: npm publish --access public --provenance
+        run: |
+          # setup-node tạo file .npmrc tại $NPM_CONFIG_USERCONFIG với _authToken=${NODE_AUTH_TOKEN}
+          # Xóa dòng đó để npm dùng OIDC thay vì token tĩnh (token tĩnh trống sẽ gây 404)
+          sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
+          cat "$NPM_CONFIG_USERCONFIG"
+          npm publish --access public --provenance
