@@ -156,5 +156,8 @@
     "windify"
   ],
   "author": "Windify Team",
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "undici": "6.19.8"
+  }
 }
