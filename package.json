@@ -95,6 +95,8 @@
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
+    "type-check": "tsc --noEmit",
+    "ci": "npm run lint && npm run type-check && npm run format && npm run format:check && npm run build && npm run test && npm run test:coverage && npm run audit:package && npm run audit:tree-shaking",
     "prepare": "husky",
     "release": "npm version patch && git push --follow-tags"
   },

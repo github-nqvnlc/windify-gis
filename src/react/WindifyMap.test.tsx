@@ -307,10 +307,17 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
   });
 
   it('renders error message when engine import fails (missing peer dependency)', async () => {
-    // Temporarily override the leaflet mock to simulate a missing module
-    vi.doMock('../core/leaflet', () => {
-      throw new Error('Could not resolve "leaflet". Is it installed?');
-    });
+    // Override the leaflet mock to return a class whose constructor throws,
+    // simulating a missing peer dependency at runtime.
+    // NOTE: We cannot throw inside the vi.doMock factory itself because vitest
+    // wraps factory errors in its own message, obscuring the original error.
+    vi.doMock('../core/leaflet', () => ({
+      WindifyLeaflet: class {
+        constructor() {
+          throw new Error('Could not resolve "leaflet". Is it installed?');
+        }
+      },
+    }));
 
     // Re-import WindifyMap to pick up the new mock
     const { WindifyMap: WindifyMapFresh } = await import('./WindifyMap');
@@ -331,10 +338,14 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
   });
 
   it('clears error state when engine prop changes to a valid engine', async () => {
-    // First mock leaflet to fail
-    vi.doMock('../core/leaflet', () => {
-      throw new Error('Could not resolve "leaflet". Is it installed?');
-    });
+    // Mock leaflet to fail via constructor throw
+    vi.doMock('../core/leaflet', () => ({
+      WindifyLeaflet: class {
+        constructor() {
+          throw new Error('Could not resolve "leaflet". Is it installed?');
+        }
+      },
+    }));
 
     const { WindifyMap: WindifyMapFresh } = await import('./WindifyMap');
 
