@@ -28,14 +28,16 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Tests & Audits
-        run: |
-          npm run test:coverage
-          npm run audit:tree-shaking
-          npm run audit:package
+      - name: Run Tests
+        run: npm run test:coverage
 
       - name: Build Production Package
         run: npm run build
+
+      - name: Run Audits
+        run: |
+          npm run audit:tree-shaking
+          npm run audit:package
 
       - name: Publish to NPM (with Provenance)
         run: npm publish --access public --provenance
