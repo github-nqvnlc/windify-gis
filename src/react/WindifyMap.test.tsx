@@ -186,7 +186,7 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
       expect(engineInstance).not.toBeNull();
     });
 
-    const destroySpy = vi.spyOn(engineInstance as any, 'destroy');
+    const destroySpy = vi.spyOn(engineInstance as { destroy: () => void }, 'destroy');
 
     unmount();
 

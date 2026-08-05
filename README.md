@@ -13,11 +13,11 @@ Windify GIS is a high-performance, cross-platform GIS map package designed to pr
 ## 📦 Installation
 
 ```bash
-npm install windify-gis
+npm install @vn-gis/windify-gis
 # OR
-yarn add windify-gis
+yarn add @vn-gis/windify-gis
 # OR
-pnpm add windify-gis
+pnpm add @vn-gis/windify-gis
 ```
 
 _Note: `leaflet`, `maplibre-gl`, `react`, and `react-dom` are peer dependencies. Make sure they are installed in your project if you plan to use their respective engines._
@@ -28,7 +28,7 @@ Using Windify GIS in your React application is incredibly simple. Import the `<W
 
 ```tsx
 import React from 'react';
-import { WindifyMap } from 'windify-gis/react';
+import { WindifyMap } from '@vn-gis/windify-gis/react';
 
 const App = () => {
   return (
@@ -53,7 +53,7 @@ Windify GIS provides a `WindifyMapContext` and a `useWindifyMap` hook. This allo
 
 ```tsx
 import React from 'react';
-import { WindifyMap, useWindifyMap } from 'windify-gis/react';
+import { WindifyMap, useWindifyMap } from '@vn-gis/windify-gis/react';
 
 // A custom control button that interacts with the map
 const CenterMapButton = () => {

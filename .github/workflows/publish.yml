@@ -10,6 +10,10 @@ jobs:
   publish:
     name: Build & Publish to NPM Registry
     runs-on: ubuntu-latest
+    # Cần thiết cho Trusted Publishing (OIDC)
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout Repository
@@ -33,7 +37,5 @@ jobs:
       - name: Build Production Package
         run: npm run build
 
-      - name: Publish to NPM
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+      - name: Publish to NPM (with Provenance)
+        run: npm publish --access public --provenance
