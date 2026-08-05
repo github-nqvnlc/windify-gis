@@ -69,7 +69,10 @@ jobs:
         with:
           node-version: 20.x
           cache: npm
-          registry-url: 'https://registry.npmjs.org'
+          # Không dùng registry-url ở đây để tránh setup-node tạo _authToken trong .npmrc
+
+      - name: Configure NPM registry (no auth token)
+        run: echo "registry=https://registry.npmjs.org/" > ~/.npmrc
 
       - name: Install Dependencies
         run: npm ci
