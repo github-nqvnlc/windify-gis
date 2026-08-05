@@ -6,15 +6,20 @@ on:
       - 'v*'
   workflow_dispatch:
 
-jobs:
-  publish:
-    name: Build & Publish to NPM Registry
-    runs-on: ubuntu-latest
-    # Cần thiết cho Trusted Publishing (OIDC)
-    permissions:
-      contents: read
-      id-token: write
+# Chỉ chạy 1 publish tại 1 thời điểm
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
+# Đặt permissions ở cấp workflow (top-level) để OIDC hoạt động đúng
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    name: Verify before Publish
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,6 +28,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
+          cache: npm
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
@@ -39,8 +45,37 @@ jobs:
           npm run audit:tree-shaking
           npm run audit:package
 
-      - name: Publish to NPM (with Provenance)
+      - name: Ensure tag matches package.json version
         run: |
-          npm config delete //registry.npmjs.org/:_authToken || true
-          sed -i '/_authToken/d' ~/.npmrc || true
-          npm publish --access public --provenance
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          echo "Tag version:     $TAG_VERSION"
+          echo "package.json:    $PKG_VERSION"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag ($TAG_VERSION) không khớp version trong package.json ($PKG_VERSION). Hãy chạy npm version trước khi tạo tag."
+            exit 1
+          fi
+
+  publish:
+    name: Publish to NPM Registry
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Production Package
+        run: npm run build
+
+      - name: Publish to NPM (with Provenance)
+        run: npm publish --access public --provenance
