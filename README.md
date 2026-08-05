@@ -20,7 +20,72 @@ yarn add @vn-gis/windify-gis
 pnpm add @vn-gis/windify-gis
 ```
 
-_Note: `leaflet`, `maplibre-gl`, `react`, and `react-dom` are peer dependencies. Make sure they are installed in your project if you plan to use their respective engines._
+### Peer Dependencies
+
+`leaflet`, `maplibre-gl`, `react`, and `react-dom` are **peer dependencies**. You only need to install the ones required by the engine(s) you plan to use. All peer dependencies are marked as **optional**, so your package manager will not install them automatically.
+
+#### Leaflet Engine
+
+Install `leaflet` if you plan to use `engine="leaflet"`:
+
+```bash
+npm install leaflet
+# TypeScript users should also install type definitions:
+npm install -D @types/leaflet
+```
+
+| Package          | Required Version | Notes                                                   |
+| ---------------- | ---------------- | ------------------------------------------------------- |
+| `leaflet`        | `^1.9.4`         | Core map library for raster tile rendering              |
+| `@types/leaflet` | `^1.9.x`         | TypeScript type definitions _(devDependency, optional)_ |
+
+**CSS Import** — Leaflet requires its CSS to be imported for the map to render correctly. Add the following import to your application entry point (e.g., `main.tsx` or `App.tsx`):
+
+```ts
+import 'leaflet/dist/leaflet.css';
+```
+
+> **⚠️ Common Issue:** If you see an unstyled or broken map layout, you are most likely missing the CSS import above.
+
+#### MapLibre GL JS Engine
+
+Install `maplibre-gl` if you plan to use `engine="maplibre"`:
+
+```bash
+npm install maplibre-gl
+```
+
+| Package       | Required Version | Notes                                                  |
+| ------------- | ---------------- | ------------------------------------------------------ |
+| `maplibre-gl` | `^4.0.0`         | Vector tile engine with WebGL rendering and 3D support |
+
+**CSS Import** — MapLibre GL JS also requires its CSS to be imported. Add the following import to your application entry point:
+
+```ts
+import 'maplibre-gl/dist/maplibre-gl.css';
+```
+
+> **💡 Tip:** MapLibre GL JS ships with built-in TypeScript type definitions — no separate `@types` package is needed.
+
+#### React (Required for `<WindifyMap />` component)
+
+If you are using the React wrapper (`@vn-gis/windify-gis/react`), make sure `react` and `react-dom` are installed:
+
+```bash
+npm install react react-dom
+```
+
+| Package     | Required Version       | Notes                         |
+| ----------- | ---------------------- | ----------------------------- |
+| `react`     | `^18.0.0 \|\| ^19.0.0` | React 18 or 19 supported      |
+| `react-dom` | `^18.0.0 \|\| ^19.0.0` | Must match your React version |
+
+#### Example: Full Install for Both Engines with React
+
+```bash
+npm install leaflet maplibre-gl react react-dom
+npm install -D @types/leaflet @types/react @types/react-dom
+```
 
 ## 🚀 Quick Start (React)
 
