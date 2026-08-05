@@ -6,12 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
-# Chỉ chạy 1 publish tại 1 thời điểm
 concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: false
 
-# Đặt permissions ở cấp workflow (top-level) để OIDC hoạt động đúng
 permissions:
   contents: read
   id-token: write
@@ -29,7 +27,6 @@ jobs:
         with:
           node-version: 20.x
           cache: npm
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
         run: npm ci
@@ -52,7 +49,7 @@ jobs:
           echo "Tag version:     $TAG_VERSION"
           echo "package.json:    $PKG_VERSION"
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "::error::Tag ($TAG_VERSION) không khớp version trong package.json ($PKG_VERSION). Hãy chạy npm version trước khi tạo tag."
+            echo "::error::Tag ($TAG_VERSION) không khớp version trong package.json ($PKG_VERSION)."
             exit 1
           fi
 
@@ -78,9 +75,6 @@ jobs:
         run: npm run build
 
       - name: Publish to NPM (with Provenance)
-        run: |
-          # setup-node tạo file .npmrc tại $NPM_CONFIG_USERCONFIG với _authToken=${NODE_AUTH_TOKEN}
-          # Xóa dòng đó để npm dùng OIDC thay vì token tĩnh (token tĩnh trống sẽ gây 404)
-          sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
-          cat "$NPM_CONFIG_USERCONFIG"
-          npm publish --access public --provenance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
