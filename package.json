@@ -54,6 +54,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "test": "vitest run",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
@@ -81,6 +82,8 @@
     }
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
     "@types/leaflet": "^1.9.16",
     "@types/node": "^22.13.1",
     "@types/react": "^19.0.8",
@@ -90,6 +93,7 @@
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.0.1",
     "husky": "^9.1.7",
+    "jsdom": "^30.0.1",
     "leaflet": "^1.9.4",
     "lint-staged": "^15.4.3",
     "maplibre-gl": "^4.7.1",
@@ -97,7 +101,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.3.6",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
