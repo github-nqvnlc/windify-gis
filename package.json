@@ -91,7 +91,8 @@
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "release": "npm version patch && git push --follow-tags"
   },
   "peerDependencies": {
     "leaflet": "^1.9.4",
