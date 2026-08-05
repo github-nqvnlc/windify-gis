@@ -17,7 +17,7 @@ export default defineConfig({
   minify: false,
   outExtension({ format }) {
     return {
-      js: format === 'cjs' ? '.js' : '.mjs',
+      js: format === 'cjs' ? '.cjs' : '.mjs',
     };
   },
   external: ['react', 'react-dom', 'leaflet', 'maplibre-gl'],

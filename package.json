@@ -3,34 +3,63 @@
   "version": "1.0.0",
   "description": "Cross-platform GIS Map Package supporting multi-engine (Leaflet, MapLibre GL JS) and React",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.mjs",
-      "require": "./dist/core/index.js"
+      "import": {
+        "types": "./dist/core/index.d.ts",
+        "default": "./dist/core/index.mjs"
+      },
+      "require": {
+        "types": "./dist/core/index.d.cts",
+        "default": "./dist/core/index.cjs"
+      }
     },
     "./core/leaflet": {
-      "types": "./dist/core/leaflet/index.d.ts",
-      "import": "./dist/core/leaflet/index.mjs",
-      "require": "./dist/core/leaflet/index.js"
+      "import": {
+        "types": "./dist/core/leaflet/index.d.ts",
+        "default": "./dist/core/leaflet/index.mjs"
+      },
+      "require": {
+        "types": "./dist/core/leaflet/index.d.cts",
+        "default": "./dist/core/leaflet/index.cjs"
+      }
     },
     "./core/maplibre": {
-      "types": "./dist/core/maplibre/index.d.ts",
-      "import": "./dist/core/maplibre/index.mjs",
-      "require": "./dist/core/maplibre/index.js"
+      "import": {
+        "types": "./dist/core/maplibre/index.d.ts",
+        "default": "./dist/core/maplibre/index.mjs"
+      },
+      "require": {
+        "types": "./dist/core/maplibre/index.d.cts",
+        "default": "./dist/core/maplibre/index.cjs"
+      }
     },
     "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.mjs",
-      "require": "./dist/react/index.js"
+      "import": {
+        "types": "./dist/react/index.d.ts",
+        "default": "./dist/react/index.mjs"
+      },
+      "require": {
+        "types": "./dist/react/index.d.cts",
+        "default": "./dist/react/index.cjs"
+      }
     }
   },
   "typesVersions": {
@@ -55,6 +84,9 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "audit:tree-shaking": "node scripts/audit-tree-shaking.js",
+    "audit:package": "publint",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
@@ -90,6 +122,7 @@
     "@types/react-dom": "^19.0.3",
     "@typescript-eslint/eslint-plugin": "^8.23.0",
     "@typescript-eslint/parser": "^8.23.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.0.1",
     "husky": "^9.1.7",
@@ -98,6 +131,7 @@
     "lint-staged": "^15.4.3",
     "maplibre-gl": "^4.7.1",
     "prettier": "^3.5.0",
+    "publint": "^0.3.23",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.3.6",

@@ -186,10 +186,123 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
       expect(engineInstance).not.toBeNull();
     });
 
-    const destroySpy = vi.spyOn(engineInstance, 'destroy');
+    const destroySpy = vi.spyOn(engineInstance as any, 'destroy');
 
     unmount();
 
     expect(destroySpy).toHaveBeenCalled();
+  });
+
+  it('handles baseMapUrl and styleUrl updates dynamically', async () => {
+    const onMapReady = vi.fn();
+
+    const { rerender } = render(
+      <WindifyMap
+        engine="leaflet"
+        center={[106.660172, 10.762622]}
+        zoom={10}
+        baseMapUrl="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        onMapReady={onMapReady}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onMapReady).toHaveBeenCalledTimes(1);
+    });
+
+    const engine = onMapReady.mock.calls[0][0];
+    const setBaseMapSpy = vi.spyOn(engine, 'setBaseMap');
+
+    rerender(
+      <WindifyMap
+        engine="leaflet"
+        center={[106.660172, 10.762622]}
+        zoom={10}
+        baseMapUrl="https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png"
+        onMapReady={onMapReady}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(setBaseMapSpy).toHaveBeenCalledWith(
+        'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
+      );
+    });
+  });
+
+  it('handles styleUrl updates dynamically for MapLibre', async () => {
+    const onMapReady = vi.fn();
+
+    const { rerender } = render(
+      <WindifyMap
+        engine="maplibre"
+        center={[106.660172, 10.762622]}
+        zoom={10}
+        styleUrl="https://demotiles.maplibre.org/style.json"
+        onMapReady={onMapReady}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onMapReady).toHaveBeenCalledTimes(1);
+    });
+
+    const engine = onMapReady.mock.calls[0][0];
+    const setStyleSpy = vi.spyOn(engine, 'setStyle');
+
+    rerender(
+      <WindifyMap
+        engine="maplibre"
+        center={[106.660172, 10.762622]}
+        zoom={10}
+        styleUrl="https://demotiles.maplibre.org/dark-style.json"
+        onMapReady={onMapReady}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(setStyleSpy).toHaveBeenCalledWith('https://demotiles.maplibre.org/dark-style.json');
+    });
+  });
+
+  it('switches engine dynamically when engine prop changes', async () => {
+    const onMapReady = vi.fn();
+
+    const { rerender } = render(
+      <WindifyMap
+        engine="leaflet"
+        center={[106.660172, 10.762622]}
+        zoom={10}
+        onMapReady={onMapReady}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onMapReady).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <WindifyMap
+        engine="maplibre"
+        center={[106.660172, 10.762622]}
+        zoom={10}
+        onMapReady={onMapReady}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onMapReady).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('returns default context when useWindifyMap is used outside Provider', () => {
+    let result: ReturnType<typeof useWindifyMap> | null = null;
+    const TestComponent = () => {
+      result = useWindifyMap();
+      return null;
+    };
+
+    render(<TestComponent />);
+    expect(result).toEqual({ engine: null, isReady: false, engineType: null });
   });
 });
