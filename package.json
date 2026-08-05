@@ -2,6 +2,10 @@
   "name": "@vn-gis/windify-gis",
   "version": "1.0.3",
   "description": "Cross-platform GIS Map Package supporting multi-engine (Leaflet, MapLibre GL JS) and React",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/github-nqvnlc/windify-gis.git"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
