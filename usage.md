@@ -51,13 +51,14 @@ Khi bắt đầu nhận một task mới, Agent **BẮT BUỘC** phải thực h
 
 **Bước 2: Lên kế hoạch (`plan-task.md`)**
 
+- Đọc lại `./documents/agents-do/task-{XXX}/desc-task.md` để nắm rõ yêu cầu cần thực hiện. Nếu desc-task.md rỗng thì tự động **DỪNG LẠI** task và hỏi lại tôi với yêu cầu cần thực hiện và bắt đầu tạo lại file `./documents/agents-do/task-{XXX}/desc-task.md` ở bước 1.
 - Tạo file `./documents/agents-do/task-{XXX}/plan-task.md`: Lên kế hoạch, ý tưởng sẽ triển khai như thế nào.
 - **DỪNG LẠI:** Hỏi tôi (người dùng) xem có `ok` với plan đó không.
 - _Quy tắc:_ Nếu tôi nhắn `ok` thì mới được làm Bước 3. Nếu tôi yêu cầu thay đổi, Agent phải cập nhật lại plan và hỏi lại cho đến khi được tôi chấp thuận bằng chữ `ok`.
 
 **Bước 3: Thực thi & Báo cáo (`implement-task.md`)**
 
-- Bắt đầu code theo kế hoạch.
+- Bắt đầu code theo kế hoạch. Trước khi code, Agent phải thực hiện đọc lại các tài liệu trong `./documents/agents-do/task-{XXX}` để nắm rõ task, plan, quy tắc.
 - Sau khi code xong, tạo file `./documents/agents-do/task-{XXX}/implement-task.md`: Tóm tắt lại những gì đã làm, thay đổi gì trong source code.
 - **DỪNG LẠI:** Hỏi tôi xem có `ok` với các thay đổi đó không.
 - _Quy tắc:_ Nếu tôi nhắn `ok` thì mới được làm Bước 4. Nếu tôi yêu cầu sửa, Agent phải sửa code, cập nhật lại tài liệu implement và hỏi lại cho đến khi được tôi chấp thuận `ok`.
@@ -66,6 +67,8 @@ Khi bắt đầu nhận một task mới, Agent **BẮT BUỘC** phải thực h
 
 - Chạy các lệnh check lint, type, format, build, test.
 - Nếu có bất kỳ lệnh nào bị lỗi (failed), Agent phải tự fix triệt để lỗi đó trước khi sang bước tiếp theo.
+- Nêu chỉ có các thay đổi về tài liệu file `.md` tại bước 3, Agent được phép tự động chuyển sang Bước 5.
+- Nếu test hoặc build bị lỗi, Agent phải tự fix và báo cáo lại từng bước cho tôi (người dùng) phê duyệt `ok` trước khi làm tiếp.
 
 **Bước 5: Cập nhật tài liệu (`change-task.md`)**
 
