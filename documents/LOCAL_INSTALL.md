@@ -44,16 +44,16 @@ npm link @vn-gis/windify-gis
 import { WindifyMap } from '@vn-gis/windify-gis/react';
 ```
 
-### Cập nhật khi thay đổi source
+### Cập nhật khi thay đổi source (Chế độ Realtime / HMR)
 
-Mỗi khi thay đổi mã nguồn của `windify-gis`, bạn chỉ cần build lại:
+Vì project sử dụng package sẽ đọc các file đã được build trong thư mục `dist/` thay vì thư mục `src/`, để quá trình phát triển diễn ra theo thời gian thực (tự động reload khi sửa code), bạn hãy chạy lệnh build ở chế độ **watch**:
 
 ```bash
 cd path/to/windify-gis
-npm run build
+npm run build -- --watch
 ```
 
-Project đã link sẽ **tự động nhận bản build mới** mà không cần chạy lại `npm link`.
+Lệnh này sẽ chạy liên tục trên terminal. Mỗi khi bạn nhấn lưu (save) một thay đổi trong thư mục `src/`, nó sẽ tự động biên dịch lại ra `dist/`. Project đã link của bạn (như Vite/Webpack) sẽ nhận diện sự thay đổi qua symlink và lập tức reload lại trang mà không cần bạn phải làm gì thêm.
 
 ### Gỡ link
 
@@ -154,15 +154,52 @@ npm install path/to/windify-gis/vn-gis-windify-gis-1.0.12.tgz
 
 ---
 
+## Cách 4: Cài qua Private Registry (Local Verdaccio / `.npmrc`)
+
+Phù hợp khi bạn đang chạy một Local Registry (như [Verdaccio](https://verdaccio.org/)) để giả lập hoàn toàn môi trường npm hoặc chia sẻ trong mạng nội bộ.
+
+### Bước 1: Publish package lên Local Registry
+
+Giả sử bạn đang chạy Verdaccio ở `http://localhost:4873/`:
+
+```bash
+cd path/to/windify-gis
+npm install
+npm run build
+npm publish --registry http://localhost:4873/
+```
+
+### Bước 2: Cấu hình `.npmrc` trong project của bạn
+
+Tạo file `.npmrc` ở thư mục gốc của project (nơi bạn muốn cài đặt package) với nội dung:
+
+```ini
+# Trỏ các package có scope @vn-gis về local registry
+@vn-gis:registry=http://localhost:4873/
+```
+
+### Bước 3: Cài đặt package
+
+```bash
+cd path/to/your-project
+npm install @vn-gis/windify-gis
+```
+
+### Cập nhật khi thay đổi source
+
+Mỗi khi có thay đổi mã nguồn, bạn cần nâng version của package (`npm version patch`), build và publish lại lên registry, sau đó chạy lệnh install/update lại ở project đích.
+
+---
+
 ## So sánh các cách
 
-| Tiêu chí                     | `npm link`      | `file:`                | `npm pack`           |
-| ---------------------------- | --------------- | ---------------------- | -------------------- |
-| Tự động nhận bản build mới   | ✅ Có (symlink) | ❌ Cần `npm install`   | ❌ Cần `npm install` |
-| Phù hợp phát triển song song | ✅ Tốt nhất     | ⚠️ Chấp nhận được      | ❌ Không tiện        |
-| Mô phỏng giống npm registry  | ❌ Không        | ⚠️ Gần giống           | ✅ Giống nhất        |
-| Chia sẻ cho đồng nghiệp      | ❌ Không        | ❌ Phụ thuộc đường dẫn | ✅ Gửi file `.tgz`   |
-| Cần build trước              | ✅ Có           | ✅ Có                  | ✅ Có                |
+| Tiêu chí                     | `npm link`      | `file:`                | `npm pack`           | `.npmrc` (Verdaccio)     |
+| ---------------------------- | --------------- | ---------------------- | -------------------- | ------------------------ |
+| Tự động nhận bản build mới   | ✅ Có (symlink) | ❌ Cần `npm install`   | ❌ Cần `npm install` | ❌ Cần bump ver & update |
+| Phù hợp phát triển song song | ✅ Tốt nhất     | ⚠️ Chấp nhận được      | ❌ Không tiện        | ❌ Không tiện            |
+| Mô phỏng giống npm registry  | ❌ Không        | ⚠️ Gần giống           | ✅ Giống             | ✅ Giống tuyệt đối       |
+| Chia sẻ cho đồng nghiệp      | ❌ Không        | ❌ Phụ thuộc đường dẫn | ✅ Gửi file `.tgz`   | ✅ Tốt (qua mạng LAN)    |
+| Cần build trước              | ✅ Có           | ✅ Có                  | ✅ Có                | ✅ Có                    |
 
 ---
 
