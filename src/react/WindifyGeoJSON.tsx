@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type {
   GeoJSONData,
   GeoJSONFeature,
@@ -14,52 +14,66 @@ export interface WindifyGeoJSONProps {
   style?: GeoJSONStyle | GeoJSONStyleFunction;
   visible?: boolean;
   onClick?: (feature: GeoJSONFeature, event: WindifyMapEvent) => void;
+  /** Called when remote loading, validation, or native rendering fails. */
+  onError?: (error: Error) => void;
 }
 
-export const WindifyGeoJSON: React.FC<WindifyGeoJSONProps> = ({
+/** Declaratively adds, replaces, toggles, and removes a GeoJSON layer. */
+export function WindifyGeoJSON({
   id,
   data,
   style,
   visible = true,
   onClick,
-}) => {
+  onError,
+}: WindifyGeoJSONProps) {
   const { engine, isReady } = useWindifyMap();
   const loadedIdRef = useRef<string | null>(null);
+  const visibleRef = useRef(visible);
 
   const onClickRef = useRef(onClick);
+  const onErrorRef = useRef(onError);
   useEffect(() => {
     onClickRef.current = onClick;
-  }, [onClick]);
+    onErrorRef.current = onError;
+    visibleRef.current = visible;
+  }, [onClick, onError, visible]);
 
   useEffect(() => {
     if (!engine || !isReady) return;
 
-    let isCancelled = false;
+    let isActive = true;
 
     const loadLayer = async () => {
-      await engine.addGeoJSONLayer({
-        id,
-        data,
-        style,
-        visible,
-        onClick: (feature, event) => onClickRef.current?.(feature, event),
-      });
+      try {
+        await engine.addGeoJSONLayer({
+          id,
+          data,
+          style,
+          visible: visibleRef.current,
+          onClick: (feature, event) => onClickRef.current?.(feature, event),
+        });
 
-      if (isCancelled) {
-        engine.removeLayer(id);
-      } else {
+        if (!isActive) return;
         loadedIdRef.current = id;
+        engine.setLayerVisibility(id, visibleRef.current);
+      } catch (error) {
+        if (!isActive) return;
+        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        if (onErrorRef.current) {
+          onErrorRef.current(normalizedError);
+        } else {
+          console.error(`WindifyGeoJSON failed to load layer "${id}".`, normalizedError);
+        }
       }
     };
 
-    loadLayer();
+    void loadLayer();
 
     return () => {
-      isCancelled = true;
-      if (loadedIdRef.current && engine) {
-        engine.removeLayer(loadedIdRef.current);
-        loadedIdRef.current = null;
-      }
+      isActive = false;
+      engine.removeLayer(id);
+      if (loadedIdRef.current === id) loadedIdRef.current = null;
     };
   }, [engine, isReady, id, data, style]);
 
@@ -70,4 +84,4 @@ export const WindifyGeoJSON: React.FC<WindifyGeoJSONProps> = ({
   }, [engine, isReady, id, visible]);
 
   return null;
-};
+}

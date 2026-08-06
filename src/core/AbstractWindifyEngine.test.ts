@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AbstractWindifyEngine } from './AbstractWindifyEngine';
-import type { BaseMapOptions, ClusterOptions, GeoJSONLayerOptions, MarkerOptions } from './types';
+import type {
+  BaseMapOptions,
+  ClusterOptions,
+  GeoJSONLayerOptions,
+  MarkerOptions,
+  PopupOptions,
+} from './types';
 
 class TestEngine extends AbstractWindifyEngine {
   public mount(container?: string | HTMLElement): void {
@@ -40,6 +46,10 @@ class TestEngine extends AbstractWindifyEngine {
   public removeMarker(_id: string): void {}
   public async addMarkerCluster(_options: ClusterOptions): Promise<void> {}
   public clearMarkers(): void {}
+  public addPopup(_options: PopupOptions): string {
+    return 'popup-1';
+  }
+  public removePopup(_id: string): void {}
 
   public triggerTestEvent(type: 'click', lngLat: [number, number]) {
     this.eventEmitter.emit({ type, lngLat, target: this });

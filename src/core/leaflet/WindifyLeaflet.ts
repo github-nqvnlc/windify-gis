@@ -8,6 +8,7 @@ import type {
   GeoJSONLayerOptions,
   GeoJSONStyle,
   MarkerOptions,
+  PopupOptions,
   WindifyLeafletOptions,
   WindifyMapEvent,
 } from '../types';
@@ -21,6 +22,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
   private geoJsonLayers = new Map<string, { layer: L.GeoJSON; visible: boolean }>();
   private geoJsonLoadTokens = new Map<string, symbol>();
   private markers = new Map<string, L.Marker>();
+  private popups = new Map<string, { popup: L.Popup; markerId?: string }>();
   private clusters = new Map<string, { group: L.LayerGroup; markers: L.Marker[] }>();
   private eventHandlers = new Map<string, (e: unknown) => void>();
 
@@ -366,6 +368,9 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
   public removeMarker(id: string): void {
     const marker = this.markers.get(id);
     if (marker) {
+      for (const [popupId, entry] of this.popups) {
+        if (entry.markerId === id) this.removePopup(popupId);
+      }
       if (this.map) {
         this.map.removeLayer(marker);
       }
@@ -459,6 +464,9 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
   }
 
   public clearMarkers(): void {
+    for (const [popupId, entry] of this.popups) {
+      if (entry.markerId) this.removePopup(popupId);
+    }
     if (this.map) {
       for (const marker of this.markers.values()) {
         this.map.removeLayer(marker);
@@ -471,10 +479,52 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
     this.clusters.clear();
   }
 
+  public addPopup(options: PopupOptions): string {
+    if (!this.map) return '';
+
+    const marker = options.markerId ? this.markers.get(options.markerId) : undefined;
+    if (options.markerId && !marker) {
+      throw new Error(`Cannot bind popup to unknown marker "${options.markerId}".`);
+    }
+    if (!options.markerId && !options.position) {
+      throw new TypeError('A standalone popup requires a position.');
+    }
+
+    const id = options.id || `popup_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    if (this.popups.has(id)) this.removePopup(id);
+
+    const popup = L.popup({
+      className: options.className,
+      closeButton: options.closeButton,
+    }).setContent(options.content);
+
+    if (options.markerId) {
+      marker?.bindPopup(popup);
+    } else {
+      if (!options.position) throw new TypeError('A standalone popup requires a position.');
+      popup.setLatLng([options.position[1], options.position[0]]).openOn(this.map);
+    }
+
+    this.popups.set(id, { popup, markerId: options.markerId });
+    return id;
+  }
+
+  public removePopup(id: string): void {
+    const entry = this.popups.get(id);
+    if (!entry) return;
+
+    if (entry.markerId) this.markers.get(entry.markerId)?.unbindPopup();
+    entry.popup.remove();
+    this.popups.delete(id);
+  }
+
   public destroy(): void {
     this.geoJsonLoadTokens.clear();
     if (this.map) {
       this.clearMarkers();
+      for (const popupId of Array.from(this.popups.keys())) {
+        this.removePopup(popupId);
+      }
       for (const key of Array.from(this.geoJsonLayers.keys())) {
         this.removeLayer(key);
       }

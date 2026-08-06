@@ -1,6 +1,6 @@
 import type { FeatureCollection } from 'geojson';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GeoJSONFeature } from '../types';
+import type { GeoJSONFeature, PopupOptions } from '../types';
 import { WindifyMapLibre } from './WindifyMapLibre';
 
 const mapLibreMocks = vi.hoisted(() => {
@@ -57,9 +57,17 @@ const mapLibreMocks = vi.hoisted(() => {
     getElement: vi.fn().mockReturnValue(markerElement),
     getLngLat: vi.fn().mockReturnValue({ lng: 106.66, lat: 10.76 }),
     remove: vi.fn(),
+    setPopup: vi.fn().mockReturnThis(),
+  };
+  const mockPopup = {
+    addTo: vi.fn().mockReturnThis(),
+    remove: vi.fn().mockReturnThis(),
+    setDOMContent: vi.fn().mockReturnThis(),
+    setHTML: vi.fn().mockReturnThis(),
+    setLngLat: vi.fn().mockReturnThis(),
   };
 
-  return { delegatedHandlers, markerElement, mockMap, mockMarker, onceHandlers };
+  return { delegatedHandlers, markerElement, mockMap, mockMarker, mockPopup, onceHandlers };
 });
 
 vi.mock('maplibre-gl', () => ({
@@ -69,6 +77,9 @@ vi.mock('maplibre-gl', () => ({
     }),
     Marker: vi.fn().mockImplementation(function () {
       return mapLibreMocks.mockMarker;
+    }),
+    Popup: vi.fn().mockImplementation(function () {
+      return mapLibreMocks.mockPopup;
     }),
   },
 }));
@@ -454,6 +465,52 @@ describe('WindifyMapLibre', () => {
 
       engine.clearMarkers();
       expect(mapLibreMocks.mockMap.removeSource).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('Stage 4: Popup parity', () => {
+    it('opens standalone popups using EPSG:4326 coordinates and removes them', () => {
+      const engine = createEngine();
+      const content = document.createElement('div');
+
+      const popupId = engine.addPopup({
+        id: 'popup-1',
+        position: [106.66, 10.76],
+        content,
+        closeButton: false,
+      });
+
+      expect(popupId).toBe('popup-1');
+      expect(mapLibreMocks.mockPopup.setDOMContent).toHaveBeenCalledWith(content);
+      expect(mapLibreMocks.mockPopup.setLngLat).toHaveBeenCalledWith([106.66, 10.76]);
+      expect(mapLibreMocks.mockPopup.addTo).toHaveBeenCalledWith(mapLibreMocks.mockMap);
+
+      engine.removePopup(popupId);
+      expect(mapLibreMocks.mockPopup.remove).toHaveBeenCalled();
+    });
+
+    it('binds a popup to a marker and cleans it up with the marker', () => {
+      const engine = createEngine();
+      const markerId = engine.addMarker({ id: 'marker-popup', position: [106.66, 10.76] });
+
+      engine.addPopup({ markerId, content: '<strong>Details</strong>' });
+      expect(mapLibreMocks.mockPopup.setHTML).toHaveBeenCalledWith('<strong>Details</strong>');
+      expect(mapLibreMocks.mockMarker.setPopup).toHaveBeenCalledWith(mapLibreMocks.mockPopup);
+
+      engine.removeMarker(markerId);
+      expect(mapLibreMocks.mockMarker.setPopup).toHaveBeenLastCalledWith(null);
+      expect(mapLibreMocks.mockPopup.remove).toHaveBeenCalled();
+    });
+
+    it('rejects popups without a valid anchor', () => {
+      const engine = createEngine();
+
+      expect(() =>
+        engine.addPopup({ content: 'Missing position' } as unknown as PopupOptions),
+      ).toThrow('requires a position');
+      expect(() => engine.addPopup({ markerId: 'missing', content: 'Missing marker' })).toThrow(
+        'unknown marker',
+      );
     });
   });
 });
