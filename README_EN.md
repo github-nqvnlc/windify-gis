@@ -188,6 +188,44 @@ If you are using the core engine directly without React, or accessing it via `on
 - `getZoom(): number`
 - `setBaseMap(options: BaseMapOptions | string): void`
 - `getNativeMap(): unknown` (Returns the raw Leaflet `L.Map` or MapLibre `maplibregl.Map` instance for advanced native operations).
+- `addGeoJSONLayer(options: GeoJSONLayerOptions): Promise<void>`
+- `removeLayer(id: string): void`
+- `setLayerVisibility(id: string, visible: boolean): void`
+- `hasLayer(id: string): boolean`
+
+### GeoJSON Layers
+
+`data` accepts an RFC 7946 Geometry, Feature, FeatureCollection, or a URL that returns GeoJSON.
+`addGeoJSONLayer` rejects when the request fails, the response is not JSON, or the document is
+invalid. An existing layer with the same ID is replaced only after the new document loads.
+
+Pass a style object for a shared style or a callback for per-feature styling. The same callback
+works with Point, LineString, and Polygon data in both Leaflet and MapLibre:
+
+```ts
+await engine.addGeoJSONLayer({
+  id: 'administrative-areas',
+  data: 'https://example.com/administrative-areas.geojson',
+  style: (feature) => ({
+    fillColor: feature.properties?.population > 1_000_000 ? '#d73027' : '#4575b4',
+    fillOpacity: 0.55,
+    color: '#ffffff',
+    weight: 1,
+    radius: 8,
+  }),
+  onClick: (feature, event) => {
+    console.log(feature.properties, event.lngLat);
+  },
+});
+```
+
+| Option    | Type                                                        | Description                                                              |
+| --------- | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `id`      | `string`                                                    | Unique layer ID; adding the same ID replaces the current layer.          |
+| `data`    | `GeoJSONData`                                               | Inline RFC 7946 GeoJSON or a URL.                                        |
+| `style`   | `GeoJSONStyle \| GeoJSONStyleFunction`                      | Shared or per-feature styling.                                           |
+| `visible` | `boolean`                                                   | Initial visibility; defaults to `true`.                                  |
+| `onClick` | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | Receives the clicked feature with its properties and a normalized event. |
 
 ### Direct Engine Imports (Advanced)
 

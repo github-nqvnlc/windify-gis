@@ -1,5 +1,11 @@
 import maplibregl from 'maplibre-gl';
 import { AbstractWindifyEngine } from '../AbstractWindifyEngine';
+import {
+  addMapLibreStyleProperties,
+  loadGeoJSON,
+  MAPLIBRE_STYLE_PROPERTIES,
+  removeMapLibreStyleProperties,
+} from '../geojson';
 import type {
   BaseMapOptions,
   ClusterOptions,
@@ -10,14 +16,34 @@ import type {
   WindifyMapLibreOptions,
 } from '../types';
 
+type GeoJSONClickEvent = maplibregl.MapMouseEvent & {
+  features?: maplibregl.MapGeoJSONFeature[];
+};
+
+type GeoJSONClickHandler = (event: GeoJSONClickEvent) => void;
+
+interface GeoJSONSourceEntry {
+  sourceId: string;
+  layerIds: string[];
+  visible: boolean;
+  clickHandler?: GeoJSONClickHandler;
+}
+
+const DEFAULT_GEOJSON_STYLE = {
+  color: '#3388ff',
+  fillColor: '#3388ff',
+  fillOpacity: 0.4,
+  opacity: 1,
+  radius: 6,
+  weight: 2,
+} as const satisfies Required<GeoJSONStyle>;
+
 export class WindifyMapLibre extends AbstractWindifyEngine {
   private map: maplibregl.Map | null = null;
   private currentStyle: string | maplibregl.StyleSpecification | null = null;
 
-  private geoJsonSources = new Map<
-    string,
-    { sourceId: string; layerIds: string[]; visible: boolean }
-  >();
+  private geoJsonSources = new Map<string, GeoJSONSourceEntry>();
+  private geoJsonLoadTokens = new Map<string, symbol>();
   private markers = new Map<string, maplibregl.Marker>();
   private clusterSources = new Set<string>();
   private eventHandlers = new Map<
@@ -183,114 +209,222 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
 
   // Stage 2: GeoJSON Layer Implementation
   public async addGeoJSONLayer(options: GeoJSONLayerOptions): Promise<void> {
+    if (options.id.trim().length === 0) {
+      throw new TypeError('GeoJSON layer ID must not be empty.');
+    }
     if (!this.map) return;
 
-    if (this.geoJsonSources.has(options.id)) {
-      this.removeLayer(options.id);
+    const map = this.map;
+    const loadToken = Symbol(options.id);
+    this.geoJsonLoadTokens.set(options.id, loadToken);
+
+    let loadedData: Awaited<ReturnType<typeof loadGeoJSON>>;
+    try {
+      loadedData = await loadGeoJSON(options.data);
+    } catch (error) {
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+      throw error;
     }
 
-    const sourceId = `source-${options.id}`;
-    let geoJsonData = options.data;
-
-    if (typeof options.data === 'string') {
-      geoJsonData = options.data; // Remote URL string supported natively by MapLibre
+    if (!(await this.waitForStyleReady(map))) {
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+      return;
     }
+    if (this.geoJsonLoadTokens.get(options.id) !== loadToken || this.map !== map) return;
 
-    this.map.addSource(sourceId, {
-      type: 'geojson',
-      data: geoJsonData as string | GeoJSON.GeoJSON,
-    });
+    const styleFunction = typeof options.style === 'function' ? options.style : undefined;
+    const isDataDriven = styleFunction !== undefined;
+    let geoJsonData = loadedData;
+    try {
+      if (styleFunction) {
+        geoJsonData = addMapLibreStyleProperties(loadedData, styleFunction);
+      }
+    } catch (error) {
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+      throw error;
+    }
+    const style: GeoJSONStyle = typeof options.style === 'function' ? {} : (options.style ?? {});
 
     const isVisible = options.visible !== false;
     const visibility = isVisible ? 'visible' : 'none';
 
-    let styleObj: GeoJSONStyle = {};
-    if (typeof options.style === 'object' && options.style !== null) {
-      styleObj = options.style;
-    }
-
-    const fillLayerId = `${options.id}-fill`;
-    const lineLayerId = `${options.id}-line`;
-    const circleLayerId = `${options.id}-circle`;
-    const layerIds: string[] = [];
-
-    // Fill Layer for Polygons
-    this.map.addLayer({
-      id: fillLayerId,
-      type: 'fill',
-      source: sourceId,
-      filter: ['any', ['==', '$type', 'Polygon'], ['==', '$type', 'MultiPolygon']],
-      layout: { visibility },
-      paint: {
-        'fill-color': styleObj.fillColor || '#3388ff',
-        'fill-opacity': styleObj.fillOpacity ?? 0.4,
-      },
-    });
-    layerIds.push(fillLayerId);
-
-    // Line Layer for Polygons and Polylines
-    this.map.addLayer({
-      id: lineLayerId,
-      type: 'line',
-      source: sourceId,
-      layout: { visibility },
-      paint: {
-        'line-color': styleObj.color || '#3388ff',
-        'line-width': styleObj.weight ?? 2,
-        'line-opacity': styleObj.opacity ?? 1,
-      },
-    });
-    layerIds.push(lineLayerId);
-
-    // Circle Layer for Points
-    this.map.addLayer({
-      id: circleLayerId,
-      type: 'circle',
-      source: sourceId,
-      filter: ['any', ['==', '$type', 'Point'], ['==', '$type', 'MultiPoint']],
-      layout: { visibility },
-      paint: {
-        'circle-color': styleObj.fillColor || styleObj.color || '#3388ff',
-        'circle-radius': styleObj.radius ?? 6,
-        'circle-opacity': styleObj.opacity ?? 1,
-      },
-    });
-    layerIds.push(circleLayerId);
-
-    if (options.onClick) {
-      for (const lId of layerIds) {
-        this.map.on('click', lId, (e) => {
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            const mapEvent: WindifyMapEvent = {
-              type: 'click',
-              lngLat: [e.lngLat.lng, e.lngLat.lat],
-              point: { x: e.point.x, y: e.point.y },
-              originalEvent: e.originalEvent,
-              target: feature,
-            };
-            options.onClick?.(feature as unknown as GeoJSON.Feature, mapEvent);
-          }
-        });
+    const getPaintValue = <T extends string | number>(
+      keys: Array<keyof GeoJSONStyle>,
+      fallback: T,
+    ): T | maplibregl.ExpressionSpecification => {
+      if (isDataDriven) {
+        const propertyExpressions = keys.map((key): maplibregl.ExpressionSpecification => [
+          'get',
+          MAPLIBRE_STYLE_PROPERTIES[key],
+        ]);
+        return ['coalesce', ...propertyExpressions, fallback];
       }
-    }
 
-    this.geoJsonSources.set(options.id, { sourceId, layerIds, visible: isVisible });
+      for (const key of keys) {
+        const value = style[key];
+        if (value !== undefined) return value as T;
+      }
+      return fallback;
+    };
+
+    const sourceId = `windify-geojson-${options.id}-source`;
+    const fillLayerId = `windify-geojson-${options.id}-fill`;
+    const lineLayerId = `windify-geojson-${options.id}-line`;
+    const circleLayerId = `windify-geojson-${options.id}-circle`;
+    const layerIds = [fillLayerId, lineLayerId, circleLayerId];
+
+    const layers: maplibregl.LayerSpecification[] = [
+      {
+        id: fillLayerId,
+        type: 'fill',
+        source: sourceId,
+        filter: ['any', ['==', '$type', 'Polygon'], ['==', '$type', 'MultiPolygon']],
+        layout: { visibility },
+        paint: {
+          'fill-color': getPaintValue(['fillColor'], DEFAULT_GEOJSON_STYLE.fillColor),
+          'fill-opacity': getPaintValue(['fillOpacity'], DEFAULT_GEOJSON_STYLE.fillOpacity),
+        },
+      },
+      {
+        id: lineLayerId,
+        type: 'line',
+        source: sourceId,
+        filter: [
+          'any',
+          ['==', '$type', 'LineString'],
+          ['==', '$type', 'MultiLineString'],
+          ['==', '$type', 'Polygon'],
+          ['==', '$type', 'MultiPolygon'],
+        ],
+        layout: { visibility },
+        paint: {
+          'line-color': getPaintValue(['color'], DEFAULT_GEOJSON_STYLE.color),
+          'line-opacity': getPaintValue(['opacity'], DEFAULT_GEOJSON_STYLE.opacity),
+          'line-width': getPaintValue(['weight'], DEFAULT_GEOJSON_STYLE.weight),
+        },
+      },
+      {
+        id: circleLayerId,
+        type: 'circle',
+        source: sourceId,
+        filter: ['any', ['==', '$type', 'Point'], ['==', '$type', 'MultiPoint']],
+        layout: { visibility },
+        paint: {
+          'circle-color': getPaintValue(['fillColor', 'color'], DEFAULT_GEOJSON_STYLE.fillColor),
+          'circle-opacity': getPaintValue(
+            ['fillOpacity', 'opacity'],
+            DEFAULT_GEOJSON_STYLE.opacity,
+          ),
+          'circle-radius': getPaintValue(['radius'], DEFAULT_GEOJSON_STYLE.radius),
+          'circle-stroke-color': getPaintValue(['color'], DEFAULT_GEOJSON_STYLE.color),
+          'circle-stroke-opacity': getPaintValue(['opacity'], DEFAULT_GEOJSON_STYLE.opacity),
+          'circle-stroke-width': getPaintValue(['weight'], DEFAULT_GEOJSON_STYLE.weight),
+        },
+      },
+    ];
+
+    this.removeExistingGeoJSONLayer(options.id);
+
+    let clickHandler: GeoJSONClickHandler | undefined;
+    const addedLayerIds: string[] = [];
+    try {
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: geoJsonData as GeoJSON.GeoJSON,
+      });
+
+      for (const layer of layers) {
+        map.addLayer(layer);
+        addedLayerIds.push(layer.id);
+      }
+
+      if (options.onClick) {
+        clickHandler = (event) => {
+          const clickedFeature = event.features?.[0];
+          if (!clickedFeature) return;
+
+          const feature = removeMapLibreStyleProperties({
+            type: 'Feature',
+            geometry: clickedFeature.geometry,
+            properties: clickedFeature.properties ?? null,
+            ...(clickedFeature.id === undefined ? {} : { id: clickedFeature.id }),
+          });
+          const mapEvent: WindifyMapEvent = {
+            type: 'click',
+            lngLat: [event.lngLat.lng, event.lngLat.lat],
+            point: { x: event.point.x, y: event.point.y },
+            originalEvent: event.originalEvent,
+            target: feature,
+          };
+          options.onClick?.(feature, mapEvent);
+        };
+        map.on('click', layerIds, clickHandler);
+      }
+
+      this.geoJsonSources.set(options.id, {
+        sourceId,
+        layerIds,
+        visible: isVisible,
+        clickHandler,
+      });
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+    } catch (error) {
+      if (clickHandler) map.off('click', layerIds, clickHandler);
+      for (const layerId of addedLayerIds.reverse()) {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+      }
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+      throw error;
+    }
   }
 
-  public removeLayer(id: string): void {
+  private clearGeoJSONLoadToken(id: string, loadToken: symbol): void {
+    if (this.geoJsonLoadTokens.get(id) === loadToken) {
+      this.geoJsonLoadTokens.delete(id);
+    }
+  }
+
+  private async waitForStyleReady(map: maplibregl.Map): Promise<boolean> {
+    if (map.isStyleLoaded()) return this.map === map;
+
+    return new Promise((resolve) => {
+      const handleLoad = () => {
+        map.off('remove', handleRemove);
+        resolve(this.map === map);
+      };
+      const handleRemove = () => {
+        map.off('style.load', handleLoad);
+        resolve(false);
+      };
+
+      map.once('style.load', handleLoad);
+      map.once('remove', handleRemove);
+    });
+  }
+
+  private removeExistingGeoJSONLayer(id: string): void {
     const entry = this.geoJsonSources.get(id);
-    if (entry && this.map) {
+    if (entry) {
+      const map = this.map;
+      if (entry.clickHandler) {
+        map?.off('click', entry.layerIds, entry.clickHandler);
+      }
       for (const lId of entry.layerIds) {
-        if (this.map.getLayer(lId)) {
-          this.map.removeLayer(lId);
+        if (map?.getLayer(lId)) {
+          map.removeLayer(lId);
         }
       }
-      if (this.map.getSource(entry.sourceId)) {
-        this.map.removeSource(entry.sourceId);
+      if (map?.getSource(entry.sourceId)) {
+        map.removeSource(entry.sourceId);
       }
       this.geoJsonSources.delete(id);
     }
+  }
+
+  public removeLayer(id: string): void {
+    this.geoJsonLoadTokens.delete(id);
+    this.removeExistingGeoJSONLayer(id);
   }
 
   public setLayerVisibility(id: string, visible: boolean): void {
@@ -470,6 +604,7 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
   }
 
   public destroy(): void {
+    this.geoJsonLoadTokens.clear();
     if (this.map) {
       this.clearMarkers();
       for (const key of Array.from(this.geoJsonSources.keys())) {
