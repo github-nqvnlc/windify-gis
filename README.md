@@ -134,6 +134,40 @@ export default App;
 - `addMarkerCluster(options: ClusterOptions): Promise<void>` — Thêm Gom cụm điểm (Marker Cluster).
 - `clearMarkers(): void` — Xóa toàn bộ Marker & Marker Cluster.
 
+#### `GeoJSONLayerOptions`
+
+`data` chấp nhận một Geometry, Feature, FeatureCollection theo RFC 7946 hoặc URL trả về
+GeoJSON. Promise từ `addGeoJSONLayer` sẽ reject nếu URL lỗi, response không phải JSON hoặc dữ
+liệu không hợp lệ; layer cũ có cùng ID chỉ được thay thế sau khi dữ liệu mới tải thành công.
+
+`style` có thể là object dùng chung hoặc callback chạy riêng cho từng feature. Cùng một callback
+hoạt động trên cả Leaflet và MapLibre cho Point, LineString và Polygon:
+
+```ts
+await engine.addGeoJSONLayer({
+  id: 'administrative-areas',
+  data: 'https://example.com/administrative-areas.geojson',
+  style: (feature) => ({
+    fillColor: feature.properties?.population > 1_000_000 ? '#d73027' : '#4575b4',
+    fillOpacity: 0.55,
+    color: '#ffffff',
+    weight: 1,
+    radius: 8,
+  }),
+  onClick: (feature, event) => {
+    console.log(feature.properties, event.lngLat);
+  },
+});
+```
+
+| Thuộc tính | Kiểu                                                        | Mô tả                                                              |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `id`       | `string`                                                    | ID duy nhất của layer; thêm lại cùng ID sẽ thay thế layer hiện có. |
+| `data`     | `GeoJSONData`                                               | GeoJSON RFC 7946 inline hoặc URL.                                  |
+| `style`    | `GeoJSONStyle \| GeoJSONStyleFunction`                      | Style chung hoặc style theo feature.                               |
+| `visible`  | `boolean`                                                   | Trạng thái hiển thị ban đầu, mặc định `true`.                      |
+| `onClick`  | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | Trả feature cùng `properties` tương ứng và sự kiện đã chuẩn hóa.   |
+
 ### 2. React Components (`@vn-gis/windify-gis/react`)
 
 #### `<WindifyMap />`

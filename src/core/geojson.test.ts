@@ -1,0 +1,125 @@
+import type { FeatureCollection } from 'geojson';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  addMapLibreStyleProperties,
+  isGeoJSON,
+  loadGeoJSON,
+  removeMapLibreStyleProperties,
+} from './geojson';
+
+const featureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [106.66, 10.76] },
+      properties: { category: 'city' },
+    },
+  ],
+} satisfies FeatureCollection;
+
+describe('GeoJSON utilities', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('validates RFC 7946 geometries and feature collections', () => {
+    expect(isGeoJSON(featureCollection)).toBe(true);
+    expect(
+      isGeoJSON({
+        type: 'Polygon',
+        coordinates: [
+          [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 0],
+          ],
+        ],
+      }),
+    ).toBe(true);
+    expect(isGeoJSON({ type: 'Point', coordinates: [Number.NaN, 10] })).toBe(false);
+    expect(
+      isGeoJSON({
+        type: 'Polygon',
+        coordinates: [
+          [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1],
+          ],
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('loads a URL and rejects network, HTTP, JSON, and schema errors with context', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    fetchSpy.mockResolvedValueOnce({
+      json: vi.fn().mockResolvedValue(featureCollection),
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+    } as unknown as Response);
+    await expect(loadGeoJSON('https://example.com/valid.geojson')).resolves.toEqual(
+      featureCollection,
+    );
+
+    fetchSpy.mockRejectedValueOnce(new Error('offline'));
+    await expect(loadGeoJSON('https://example.com/offline.geojson')).rejects.toThrow(
+      'Unable to fetch GeoJSON',
+    );
+
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+    } as Response);
+    await expect(loadGeoJSON('https://example.com/error.geojson')).rejects.toThrow(
+      'HTTP 500 Server Error',
+    );
+
+    fetchSpy.mockResolvedValueOnce({
+      json: vi.fn().mockRejectedValue(new SyntaxError('invalid JSON')),
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+    } as unknown as Response);
+    await expect(loadGeoJSON('https://example.com/invalid.json')).rejects.toThrow(
+      'is not valid JSON',
+    );
+
+    await expect(loadGeoJSON('')).rejects.toThrow('URL must not be empty');
+  });
+
+  it('injects and removes private MapLibre style properties without changing user data', () => {
+    const styled = addMapLibreStyleProperties(featureCollection, (feature) => ({
+      fillColor: feature.properties?.category === 'city' ? '#00ff00' : '#ff0000',
+      radius: 10,
+    }));
+    if (styled.type !== 'FeatureCollection') throw new Error('Expected a feature collection');
+
+    expect(styled.features[0]?.properties).toEqual({
+      __windify_style_fill_color: '#00ff00',
+      __windify_style_radius: 10,
+      category: 'city',
+    });
+    expect(featureCollection.features[0]?.properties).toEqual({ category: 'city' });
+    expect(removeMapLibreStyleProperties(styled.features[0]!)).toEqual(
+      featureCollection.features[0],
+    );
+  });
+
+  it('restores null feature properties after data-driven styling', () => {
+    const feature = {
+      type: 'Feature',
+      geometry: null,
+      properties: null,
+    } as const;
+    const styled = addMapLibreStyleProperties(feature, () => ({ opacity: 0.5 }));
+    if (styled.type !== 'Feature') throw new Error('Expected a feature');
+
+    expect(removeMapLibreStyleProperties(styled).properties).toBeNull();
+  });
+});

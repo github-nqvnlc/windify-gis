@@ -1,13 +1,19 @@
 import React, { useEffect, useRef } from 'react';
-import type { GeoJSONStyle, WindifyMapEvent } from '../core/types';
+import type {
+  GeoJSONData,
+  GeoJSONFeature,
+  GeoJSONStyle,
+  GeoJSONStyleFunction,
+  WindifyMapEvent,
+} from '../core/types';
 import { useWindifyMap } from './useWindifyMap';
 
 export interface WindifyGeoJSONProps {
   id: string;
-  data: unknown | string; // GeoJSON object or URL string
-  style?: GeoJSONStyle | ((feature: unknown) => GeoJSONStyle);
+  data: GeoJSONData;
+  style?: GeoJSONStyle | GeoJSONStyleFunction;
   visible?: boolean;
-  onClick?: (feature: unknown, event: WindifyMapEvent) => void;
+  onClick?: (feature: GeoJSONFeature, event: WindifyMapEvent) => void;
 }
 
 export const WindifyGeoJSON: React.FC<WindifyGeoJSONProps> = ({

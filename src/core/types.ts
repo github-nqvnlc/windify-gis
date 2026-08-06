@@ -1,3 +1,10 @@
+import type {
+  Feature as GeoJSONFeatureType,
+  FeatureCollection,
+  GeoJsonProperties,
+  Geometry,
+} from 'geojson';
+
 export type EngineType = 'leaflet' | 'maplibre';
 
 export interface MapOptions {
@@ -41,12 +48,17 @@ export interface GeoJSONStyle {
   radius?: number;
 }
 
+export type GeoJSONFeature = GeoJSONFeatureType<Geometry | null, GeoJsonProperties>;
+export type GeoJSONData =
+  Geometry | GeoJSONFeature | FeatureCollection<Geometry | null, GeoJsonProperties> | string;
+export type GeoJSONStyleFunction = (feature: GeoJSONFeature) => GeoJSONStyle;
+
 export interface GeoJSONLayerOptions {
   id: string;
-  data: unknown | string; // GeoJSON object or URL string
-  style?: GeoJSONStyle | ((feature: unknown) => GeoJSONStyle);
+  data: GeoJSONData;
+  style?: GeoJSONStyle | GeoJSONStyleFunction;
   visible?: boolean;
-  onClick?: (feature: unknown, event: WindifyMapEvent) => void;
+  onClick?: (feature: GeoJSONFeature, event: WindifyMapEvent) => void;
 }
 
 // Stage 3: Markers & Clustering

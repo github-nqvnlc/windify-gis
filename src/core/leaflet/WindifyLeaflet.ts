@@ -1,8 +1,10 @@
 import L from 'leaflet';
 import { AbstractWindifyEngine } from '../AbstractWindifyEngine';
+import { loadGeoJSON } from '../geojson';
 import type {
   BaseMapOptions,
   ClusterOptions,
+  GeoJSONFeature,
   GeoJSONLayerOptions,
   GeoJSONStyle,
   MarkerOptions,
@@ -17,6 +19,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   private geoJsonLayers = new Map<string, { layer: L.GeoJSON; visible: boolean }>();
+  private geoJsonLoadTokens = new Map<string, symbol>();
   private markers = new Map<string, L.Marker>();
   private clusters = new Map<string, { group: L.LayerGroup; markers: L.Marker[] }>();
   private eventHandlers = new Map<string, (e: unknown) => void>();
@@ -171,23 +174,40 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
 
   // Stage 2: GeoJSON Layer Implementation
   public async addGeoJSONLayer(options: GeoJSONLayerOptions): Promise<void> {
+    if (options.id.trim().length === 0) {
+      throw new TypeError('GeoJSON layer ID must not be empty.');
+    }
     if (!this.map) return;
 
-    if (this.geoJsonLayers.has(options.id)) {
-      this.removeLayer(options.id);
+    const loadToken = Symbol(options.id);
+    this.geoJsonLoadTokens.set(options.id, loadToken);
+    let geoJsonData: Awaited<ReturnType<typeof loadGeoJSON>>;
+    try {
+      geoJsonData = await loadGeoJSON(options.data);
+    } catch (error) {
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+      throw error;
     }
 
-    let geoJsonData = options.data;
-    if (typeof options.data === 'string') {
-      const response = await fetch(options.data);
-      geoJsonData = await response.json();
-    }
+    if (this.geoJsonLoadTokens.get(options.id) !== loadToken || !this.map) return;
 
     const styleOption = options.style;
-    const leafletStyle =
+    const featureStyleCache = new WeakMap<GeoJSONFeature, GeoJSONStyle>();
+    const resolveFeatureStyle = (feature: GeoJSONFeature): GeoJSONStyle => {
+      if (typeof styleOption !== 'function') return styleOption ?? {};
+
+      const cachedStyle = featureStyleCache.get(feature);
+      if (cachedStyle) return cachedStyle;
+
+      const featureStyle = styleOption(feature);
+      featureStyleCache.set(feature, featureStyle);
+      return featureStyle;
+    };
+    const leafletStyle: L.PathOptions | L.StyleFunction | undefined =
       typeof styleOption === 'function'
-        ? (feature: unknown) => {
-            const s = styleOption(feature);
+        ? (feature) => {
+            if (!feature) return {};
+            const s = resolveFeatureStyle(feature as GeoJSONFeature);
             return {
               fillColor: s.fillColor,
               fillOpacity: s.fillOpacity,
@@ -206,51 +226,63 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
             }
           : undefined;
 
-    const layer = L.geoJSON(geoJsonData as GeoJSON.GeoJSON, {
-      style: leafletStyle as L.PathOptions | L.StyleFunction,
-      pointToLayer: (feature, latlng) => {
-        let styleObj: GeoJSONStyle = {};
-        if (typeof styleOption === 'function') {
-          styleObj = styleOption(feature);
-        } else if (typeof styleOption === 'object' && styleOption !== null) {
-          styleObj = styleOption;
-        }
-        return L.circleMarker(latlng, {
-          radius: styleObj.radius ?? 8,
-          fillColor: styleObj.fillColor ?? '#3388ff',
-          fillOpacity: styleObj.fillOpacity ?? 0.8,
-          color: styleObj.color ?? '#ffffff',
-          weight: styleObj.weight ?? 1,
-          opacity: styleObj.opacity ?? 1,
-        });
-      },
-      onEachFeature: (feature, featureLayer) => {
-        if (options.onClick) {
-          featureLayer.on('click', (e: L.LeafletMouseEvent) => {
-            const mapEvent: WindifyMapEvent = {
-              type: 'click',
-              lngLat: [e.latlng.lng, e.latlng.lat],
-              point: e.containerPoint
-                ? { x: e.containerPoint.x, y: e.containerPoint.y }
-                : undefined,
-              originalEvent: e.originalEvent,
-              target: featureLayer,
-            };
-            options.onClick?.(feature, mapEvent);
+    let layer: L.GeoJSON;
+    try {
+      layer = L.geoJSON(geoJsonData, {
+        style: leafletStyle,
+        pointToLayer: (feature, latlng) => {
+          let styleObj: GeoJSONStyle = {};
+          if (styleOption) styleObj = resolveFeatureStyle(feature as GeoJSONFeature);
+          return L.circleMarker(latlng, {
+            radius: styleObj.radius ?? 8,
+            fillColor: styleObj.fillColor ?? '#3388ff',
+            fillOpacity: styleObj.fillOpacity ?? 0.8,
+            color: styleObj.color ?? '#ffffff',
+            weight: styleObj.weight ?? 1,
+            opacity: styleObj.opacity ?? 1,
           });
-        }
-      },
-    });
+        },
+        onEachFeature: (feature, featureLayer) => {
+          if (options.onClick) {
+            featureLayer.on('click', (e: L.LeafletMouseEvent) => {
+              const mapEvent: WindifyMapEvent = {
+                type: 'click',
+                lngLat: [e.latlng.lng, e.latlng.lat],
+                point: e.containerPoint
+                  ? { x: e.containerPoint.x, y: e.containerPoint.y }
+                  : undefined,
+                originalEvent: e.originalEvent,
+                target: featureLayer,
+              };
+              options.onClick?.(feature as GeoJSONFeature, mapEvent);
+            });
+          }
+        },
+      });
+    } catch (error) {
+      this.clearGeoJSONLoadToken(options.id, loadToken);
+      throw error;
+    }
 
+    if (this.geoJsonLoadTokens.get(options.id) !== loadToken || !this.map) return;
+
+    this.removeExistingGeoJSONLayer(options.id);
     const isVisible = options.visible !== false;
     if (isVisible) {
       layer.addTo(this.map);
     }
 
     this.geoJsonLayers.set(options.id, { layer, visible: isVisible });
+    this.clearGeoJSONLoadToken(options.id, loadToken);
   }
 
-  public removeLayer(id: string): void {
+  private clearGeoJSONLoadToken(id: string, loadToken: symbol): void {
+    if (this.geoJsonLoadTokens.get(id) === loadToken) {
+      this.geoJsonLoadTokens.delete(id);
+    }
+  }
+
+  private removeExistingGeoJSONLayer(id: string): void {
     const entry = this.geoJsonLayers.get(id);
     if (entry) {
       if (this.map && entry.visible) {
@@ -258,6 +290,11 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       }
       this.geoJsonLayers.delete(id);
     }
+  }
+
+  public removeLayer(id: string): void {
+    this.geoJsonLoadTokens.delete(id);
+    this.removeExistingGeoJSONLayer(id);
   }
 
   public setLayerVisibility(id: string, visible: boolean): void {
@@ -402,6 +439,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
   }
 
   public destroy(): void {
+    this.geoJsonLoadTokens.clear();
     if (this.map) {
       this.clearMarkers();
       for (const key of Array.from(this.geoJsonLayers.keys())) {
