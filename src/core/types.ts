@@ -17,6 +17,57 @@ export interface BaseMapOptions {
   minZoom?: number;
 }
 
+// Stage 1: Events
+export type WindifyEventType =
+  'click' | 'dblclick' | 'mousemove' | 'mouseleave' | 'dragend' | 'zoomend';
+
+export interface WindifyMapEvent {
+  type: WindifyEventType;
+  lngLat: [number, number]; // EPSG:4326 [longitude, latitude]
+  point?: { x: number; y: number };
+  originalEvent?: unknown;
+  target?: unknown;
+}
+
+export type WindifyEventListener = (event: WindifyMapEvent) => void;
+
+// Stage 2: GeoJSON Layer
+export interface GeoJSONStyle {
+  fillColor?: string;
+  fillOpacity?: number;
+  color?: string;
+  weight?: number;
+  opacity?: number;
+  radius?: number;
+}
+
+export interface GeoJSONLayerOptions {
+  id: string;
+  data: unknown | string; // GeoJSON object or URL string
+  style?: GeoJSONStyle | ((feature: unknown) => GeoJSONStyle);
+  visible?: boolean;
+  onClick?: (feature: unknown, event: WindifyMapEvent) => void;
+}
+
+// Stage 3: Markers & Clustering
+export interface MarkerOptions {
+  id?: string;
+  position: [number, number]; // EPSG:4326 [longitude, latitude]
+  element?: HTMLElement | string;
+  title?: string;
+  draggable?: boolean;
+  onClick?: (event: WindifyMapEvent) => void;
+}
+
+export interface ClusterOptions {
+  id: string;
+  markers: MarkerOptions[];
+  maxZoom?: number;
+  radius?: number;
+  customClusterIcon?: (count: number) => HTMLElement | string;
+}
+
+// Unified Map Engine Interface
 export interface IWindifyMapEngine {
   mount(container?: string | HTMLElement): void;
   destroy(): void;
@@ -26,6 +77,23 @@ export interface IWindifyMapEngine {
   getZoom(): number;
   setBaseMap(options: BaseMapOptions | string): void;
   getNativeMap(): unknown;
+
+  // Stage 1: Event Methods
+  on(type: WindifyEventType, listener: WindifyEventListener): void;
+  off(type: WindifyEventType, listener: WindifyEventListener): void;
+  once(type: WindifyEventType, listener: WindifyEventListener): void;
+
+  // Stage 2: Layer Management
+  addGeoJSONLayer(options: GeoJSONLayerOptions): Promise<void>;
+  removeLayer(id: string): void;
+  setLayerVisibility(id: string, visible: boolean): void;
+  hasLayer(id: string): boolean;
+
+  // Stage 3: Marker & Clustering
+  addMarker(options: MarkerOptions): string;
+  removeMarker(id: string): void;
+  addMarkerCluster(options: ClusterOptions): Promise<void>;
+  clearMarkers(): void;
 }
 
 export interface WindifyLeafletOptions extends MapOptions {

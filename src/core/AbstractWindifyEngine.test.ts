@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { AbstractWindifyEngine } from './AbstractWindifyEngine';
-import type { BaseMapOptions } from './types';
+import type { BaseMapOptions, ClusterOptions, GeoJSONLayerOptions, MarkerOptions } from './types';
 
 class TestEngine extends AbstractWindifyEngine {
   public mount(container?: string | HTMLElement): void {
@@ -25,6 +25,24 @@ class TestEngine extends AbstractWindifyEngine {
   public setBaseMap(_options: BaseMapOptions | string): void {}
   public getNativeMap(): unknown {
     return null;
+  }
+
+  public async addGeoJSONLayer(_options: GeoJSONLayerOptions): Promise<void> {}
+  public removeLayer(_id: string): void {}
+  public setLayerVisibility(_id: string, _visible: boolean): void {}
+  public hasLayer(_id: string): boolean {
+    return false;
+  }
+
+  public addMarker(_options: MarkerOptions): string {
+    return 'marker-1';
+  }
+  public removeMarker(_id: string): void {}
+  public async addMarkerCluster(_options: ClusterOptions): Promise<void> {}
+  public clearMarkers(): void {}
+
+  public triggerTestEvent(type: 'click', lngLat: [number, number]) {
+    this.eventEmitter.emit({ type, lngLat, target: this });
   }
 }
 
@@ -57,5 +75,31 @@ describe('AbstractWindifyEngine', () => {
 
     engine.destroy();
     expect(engine.getIsMounted()).toBe(false);
+  });
+
+  it('manages event subscriptions with on, off, and once', () => {
+    const engine = new TestEngine({
+      container: 'map-id',
+      center: [105.0, 21.0],
+      zoom: 12,
+    });
+
+    const listener = vi.fn();
+    const onceListener = vi.fn();
+
+    engine.on('click', listener);
+    engine.once('click', onceListener);
+
+    engine.triggerTestEvent('click', [105.0, 21.0]);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(onceListener).toHaveBeenCalledTimes(1);
+
+    engine.triggerTestEvent('click', [106.0, 22.0]);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(onceListener).toHaveBeenCalledTimes(1);
+
+    engine.off('click', listener);
+    engine.triggerTestEvent('click', [107.0, 23.0]);
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 });

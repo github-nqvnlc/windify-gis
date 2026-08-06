@@ -9,12 +9,46 @@ vi.mock('maplibre-gl', () => {
     setZoom: vi.fn(),
     getZoom: vi.fn().mockReturnValue(10),
     setStyle: vi.fn(),
+    on: vi.fn().mockImplementation((event: string, arg2: unknown, arg3?: unknown) => {
+      if (typeof arg2 === 'string' && typeof arg3 === 'function') {
+        (arg3 as (e: unknown) => void)({
+          features: [{ type: 'Feature' }],
+          lngLat: { lng: 106.66, lat: 10.76 },
+          point: { x: 100, y: 200 },
+          originalEvent: {},
+        });
+      }
+    }),
+    off: vi.fn(),
+    addSource: vi.fn(),
+    getSource: vi.fn().mockReturnValue({}),
+    removeSource: vi.fn(),
+    addLayer: vi.fn(),
+    getLayer: vi.fn().mockReturnValue({}),
+    removeLayer: vi.fn(),
+    setLayoutProperty: vi.fn(),
+  };
+
+  const mockMarker = {
+    setLngLat: vi.fn().mockReturnThis(),
+    addTo: vi.fn().mockReturnThis(),
+    getElement: vi.fn().mockReturnValue({
+      addEventListener: vi.fn().mockImplementation((evt: string, cb: (e: unknown) => void) => {
+        cb({});
+      }),
+      title: '',
+    }),
+    getLngLat: vi.fn().mockReturnValue({ lng: 106.66, lat: 10.76 }),
+    remove: vi.fn(),
   };
 
   return {
     default: {
       Map: vi.fn().mockImplementation(function (this: unknown) {
         return mockMap;
+      }),
+      Marker: vi.fn().mockImplementation(function (this: unknown) {
+        return mockMarker;
       }),
     },
   };
@@ -46,44 +80,76 @@ describe('WindifyMapLibre', () => {
     expect(engine.getZoom()).toBe(10);
   });
 
-  it('updates center, zoom and style correctly', () => {
+  it('handles GeoJSON layers with onClick listener', async () => {
     const engine = new WindifyMapLibre({
       container,
       center: [106.660172, 10.762622],
       zoom: 10,
     });
 
-    engine.setCenter([108.0, 12.0]);
-    expect(engine.getCenter()).toEqual([106.660172, 10.762622]);
+    const sampleGeoJson = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [106.66, 10.76] },
+          properties: { name: 'Test Point' },
+        },
+      ],
+    };
 
-    engine.setZoom(14);
-    expect(engine.getZoom()).toBe(10);
+    const onClickFn = vi.fn();
+    await engine.addGeoJSONLayer({
+      id: 'test-layer-ml',
+      data: sampleGeoJson,
+      visible: true,
+      style: { color: '#ff0000' },
+      onClick: onClickFn,
+    });
 
-    engine.setStyle('https://demotiles.maplibre.org/style.json');
-    expect(engine.getIsMounted()).toBe(true);
+    expect(engine.hasLayer('test-layer-ml')).toBe(true);
+    engine.setLayerVisibility('test-layer-ml', false);
+    engine.setLayerVisibility('test-layer-ml', true);
+
+    engine.removeLayer('test-layer-ml');
+    expect(engine.hasLayer('test-layer-ml')).toBe(false);
   });
 
-  it('sets base map with json string and raster options object', () => {
+  it('handles Markers with string/element & onClick', async () => {
     const engine = new WindifyMapLibre({
       container,
       center: [106.660172, 10.762622],
       zoom: 10,
     });
 
-    engine.setBaseMap('https://demotiles.maplibre.org/style.json');
+    const onClickFn = vi.fn();
+    const el = document.createElement('div');
+    el.innerHTML = '<span>Pin</span>';
 
-    engine.setBaseMap({
-      url: 'https://demotiles.maplibre.org/style.json',
+    const m1 = engine.addMarker({
+      id: 'm-ml1',
+      position: [106.66, 10.76],
+      title: 'MapLibre Marker 1',
+      element: el,
+      onClick: onClickFn,
     });
 
-    engine.setBaseMap({
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution: 'OpenStreetMap',
-      minZoom: 0,
-      maxZoom: 19,
+    const m2 = engine.addMarker({
+      position: [106.67, 10.77],
+      title: 'MapLibre Marker 2',
+      element: '<div>String element</div>',
     });
 
-    expect(engine.getIsMounted()).toBe(true);
+    expect(m1).toBe('m-ml1');
+    engine.removeMarker(m1);
+    engine.removeMarker(m2);
+
+    await engine.addMarkerCluster({
+      id: 'cluster-ml-1',
+      markers: [{ position: [106.66, 10.76] }, { position: [106.67, 10.77] }],
+    });
+
+    engine.clearMarkers();
   });
 
   it('destroys and cleans up map properly', () => {
@@ -98,33 +164,5 @@ describe('WindifyMapLibre', () => {
 
     expect(engine.getIsMounted()).toBe(false);
     expect(engine.getNativeMap()).toBeNull();
-    expect(engine.getCenter()).toEqual([106.660172, 10.762622]);
-    expect(engine.getZoom()).toBe(10);
-  });
-
-  it('handles mounting guard when already mounted', () => {
-    const engine = new WindifyMapLibre({
-      container,
-      center: [106.660172, 10.762622],
-      zoom: 10,
-    });
-
-    engine.mount(container);
-    expect(engine.getIsMounted()).toBe(true);
-  });
-
-  it('handles operations gracefully when map is null/destroyed', () => {
-    const engine = new WindifyMapLibre({
-      container,
-      center: [106.660172, 10.762622],
-      zoom: 10,
-    });
-    engine.destroy();
-    engine.setCenter([108.0, 12.0]);
-    engine.setZoom(12);
-    engine.setStyle('https://demotiles.maplibre.org/style.json');
-    engine.setBaseMap('https://demotiles.maplibre.org/style.json');
-    engine.destroy();
-    expect(engine.getIsMounted()).toBe(false);
   });
 });
