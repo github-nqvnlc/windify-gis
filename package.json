@@ -122,6 +122,9 @@
       "optional": true
     }
   },
+  "dependencies": {
+    "@types/geojson": "^7946.0.16"
+  },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",

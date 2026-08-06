@@ -16,6 +16,8 @@ vi.mock('leaflet', () => {
     setZoom: vi.fn(),
     getZoom: vi.fn().mockReturnValue(10),
     removeLayer: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
   };
   return {
     default: {
@@ -34,6 +36,8 @@ vi.mock('maplibre-gl', () => {
     setZoom: vi.fn(),
     getZoom: vi.fn().mockReturnValue(10),
     setStyle: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
   };
   return {
     default: {
@@ -307,10 +311,6 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
   });
 
   it('renders error message when engine import fails (missing peer dependency)', async () => {
-    // Override the leaflet mock to return a class whose constructor throws,
-    // simulating a missing peer dependency at runtime.
-    // NOTE: We cannot throw inside the vi.doMock factory itself because vitest
-    // wraps factory errors in its own message, obscuring the original error.
     vi.doMock('../core/leaflet', () => ({
       WindifyLeaflet: class {
         constructor() {
@@ -319,7 +319,6 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
       },
     }));
 
-    // Re-import WindifyMap to pick up the new mock
     const { WindifyMap: WindifyMapFresh } = await import('./WindifyMap');
 
     const { container } = render(
@@ -333,12 +332,10 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
       expect(alert?.textContent).toContain('npm install');
     });
 
-    // Restore the original mock
     vi.doUnmock('../core/leaflet');
   });
 
   it('clears error state when engine prop changes to a valid engine', async () => {
-    // Mock leaflet to fail via constructor throw
     vi.doMock('../core/leaflet', () => ({
       WindifyLeaflet: class {
         constructor() {
@@ -358,7 +355,6 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
       expect(alert).not.toBeNull();
     });
 
-    // Restore leaflet mock and switch to maplibre (which works)
     vi.doUnmock('../core/leaflet');
 
     rerender(<WindifyMapFresh engine="maplibre" center={[106.660172, 10.762622]} zoom={10} />);
