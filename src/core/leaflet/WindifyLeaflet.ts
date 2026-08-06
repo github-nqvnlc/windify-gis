@@ -379,12 +379,45 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
     if (this.clusters.has(options.id)) {
       const existing = this.clusters.get(options.id);
       if (existing) {
-        this.map.removeLayer(existing.group);
+        if (this.map) {
+          this.map.removeLayer(existing.group);
+        }
         this.clusters.delete(options.id);
       }
     }
 
-    const group = L.layerGroup().addTo(this.map);
+    let group: L.LayerGroup;
+    const groupOptions: Record<string, unknown> = {};
+    if (options.radius !== undefined) {
+      groupOptions.maxClusterRadius = options.radius;
+    }
+    if (options.maxZoom !== undefined) {
+      groupOptions.disableClusteringAtZoom = options.maxZoom;
+    }
+    if (options.customClusterIcon) {
+      groupOptions.iconCreateFunction = (cluster: { getChildCount: () => number }) => {
+        const count = cluster.getChildCount();
+        const customIcon = options.customClusterIcon!(count);
+        const html = typeof customIcon === 'string' ? customIcon : customIcon.outerHTML;
+        return L.divIcon({
+          html,
+          className: 'windify-custom-cluster-icon',
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+        });
+      };
+    }
+
+    const LWithCluster = L as unknown as {
+      markerClusterGroup?: (opts?: Record<string, unknown>) => L.LayerGroup;
+    };
+    if (typeof LWithCluster.markerClusterGroup === 'function') {
+      group = LWithCluster.markerClusterGroup(groupOptions);
+    } else {
+      group = L.layerGroup();
+    }
+
+    group.addTo(this.map);
     const createdMarkers: L.Marker[] = [];
 
     for (const mOpts of options.markers) {

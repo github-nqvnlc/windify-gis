@@ -381,4 +381,79 @@ describe('WindifyMapLibre', () => {
     expect(engine.getIsMounted()).toBe(false);
     expect(engine.getNativeMap()).toBeNull();
   });
+
+  describe('Stage 3: Marker & Clustering details', () => {
+    it('creates single markers with options, handles replacements and removal', () => {
+      const engine = createEngine();
+      const onClick = vi.fn();
+
+      const autoId = engine.addMarker({
+        position: [106.66, 10.76],
+        title: 'MapLibre Auto Marker',
+        draggable: true,
+        element: '<div>HTML Pin</div>',
+        onClick,
+      });
+
+      expect(autoId).toBeDefined();
+      expect(typeof autoId).toBe('string');
+      expect(mapLibreMocks.mockMarker.setLngLat).toHaveBeenCalledWith([106.66, 10.76]);
+      expect(mapLibreMocks.mockMarker.addTo).toHaveBeenCalled();
+
+      // Trigger click on marker element
+      mapLibreMocks.markerElement.addEventListener.mock.calls[0]?.[1]({});
+      expect(onClick).toHaveBeenCalledWith(
+        expect.objectContaining({ lngLat: [106.66, 10.76], type: 'click' }),
+      );
+
+      // Replacement
+      engine.addMarker({
+        id: autoId,
+        position: [106.67, 10.77],
+      });
+      expect(mapLibreMocks.mockMarker.remove).toHaveBeenCalled();
+
+      // Removal
+      engine.removeMarker(autoId);
+      expect(mapLibreMocks.mockMarker.remove).toHaveBeenCalledTimes(2);
+    });
+
+    it('configures cluster source with maxZoom, radius, layers, and handles unclustered click', async () => {
+      const engine = createEngine();
+      const onClickMarker = vi.fn();
+
+      await engine.addMarkerCluster({
+        id: 'cluster-demo',
+        maxZoom: 16,
+        radius: 40,
+        markers: [
+          { position: [106.66, 10.76], title: 'Loc 1', onClick: onClickMarker },
+          { position: [106.67, 10.77], title: 'Loc 2' },
+        ],
+      });
+
+      expect(mapLibreMocks.mockMap.addSource).toHaveBeenCalledWith(
+        'cluster-source-cluster-demo',
+        expect.objectContaining({
+          type: 'geojson',
+          cluster: true,
+          clusterMaxZoom: 16,
+          clusterRadius: 40,
+        }),
+      );
+      expect(mapLibreMocks.mockMap.addLayer).toHaveBeenCalledTimes(3);
+
+      // Re-adding cluster with same ID cleans up previous source and layers
+      await engine.addMarkerCluster({
+        id: 'cluster-demo',
+        markers: [{ position: [106.68, 10.78] }],
+      });
+      expect(mapLibreMocks.mockMap.removeSource).toHaveBeenCalledWith(
+        'cluster-source-cluster-demo',
+      );
+
+      engine.clearMarkers();
+      expect(mapLibreMocks.mockMap.removeSource).toHaveBeenCalledTimes(2);
+    });
+  });
 });

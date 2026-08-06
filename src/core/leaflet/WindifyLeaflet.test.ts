@@ -342,4 +342,67 @@ describe('WindifyLeaflet', () => {
     expect(engine.getIsMounted()).toBe(false);
     expect(engine.getNativeMap()).toBeNull();
   });
+
+  describe('Stage 3: Marker & Clustering details', () => {
+    it('creates single markers with auto-generated ID, custom element (string & HTMLElement), title, draggable, and onClick', () => {
+      const engine = createEngine();
+      const onClick = vi.fn();
+
+      const autoId = engine.addMarker({
+        position: [106.66, 10.76],
+        title: 'Auto Marker',
+        draggable: true,
+        element: '<div class="custom-icon">📍</div>',
+        onClick,
+      });
+
+      expect(autoId).toBeDefined();
+      expect(typeof autoId).toBe('string');
+      expect(leafletMocks.marker).toHaveBeenCalledWith(
+        [10.76, 106.66],
+        expect.objectContaining({
+          title: 'Auto Marker',
+          draggable: true,
+        }),
+      );
+
+      const htmlEl = document.createElement('span');
+      htmlEl.innerHTML = 'Custom SVG';
+      const customId = engine.addMarker({
+        id: 'marker-custom',
+        position: [106.67, 10.77],
+        element: htmlEl,
+      });
+      expect(customId).toBe('marker-custom');
+
+      // Re-adding marker with same ID replaces old marker
+      engine.addMarker({
+        id: 'marker-custom',
+        position: [106.68, 10.78],
+      });
+      expect(leafletMocks.mockMap.removeLayer).toHaveBeenCalledWith(leafletMocks.mockMarker);
+    });
+
+    it('creates marker clusters with customClusterIcon and manages group lifecycle', async () => {
+      const engine = createEngine();
+      const customClusterIcon = vi.fn((count: number) => `<div>Cluster count: ${count}</div>`);
+      const onClickMarker = vi.fn();
+
+      await engine.addMarkerCluster({
+        id: 'cluster-test',
+        radius: 60,
+        maxZoom: 15,
+        customClusterIcon,
+        markers: [
+          { position: [106.66, 10.76], title: 'Point A', onClick: onClickMarker },
+          { position: [106.67, 10.77], title: 'Point B' },
+        ],
+      });
+
+      expect(leafletMocks.mockLayerGroup.addLayer).toHaveBeenCalledTimes(2);
+
+      engine.clearMarkers();
+      expect(leafletMocks.mockMap.removeLayer).toHaveBeenCalledWith(leafletMocks.mockLayerGroup);
+    });
+  });
 });

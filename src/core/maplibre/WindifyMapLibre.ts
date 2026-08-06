@@ -29,6 +29,16 @@ interface GeoJSONSourceEntry {
   clickHandler?: GeoJSONClickHandler;
 }
 
+type MapLayerEventListener = (
+  e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] },
+) => void;
+
+interface ClusterSourceEntry {
+  sourceId: string;
+  layerIds: string[];
+  handlers: Array<{ event: string; layerId: string; listener: MapLayerEventListener }>;
+}
+
 const DEFAULT_GEOJSON_STYLE = {
   color: '#3388ff',
   fillColor: '#3388ff',
@@ -45,7 +55,7 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
   private geoJsonSources = new Map<string, GeoJSONSourceEntry>();
   private geoJsonLoadTokens = new Map<string, symbol>();
   private markers = new Map<string, maplibregl.Marker>();
-  private clusterSources = new Set<string>();
+  private clusterSources = new Map<string, ClusterSourceEntry>();
   private eventHandlers = new Map<
     string,
     (e: maplibregl.MapMouseEvent | maplibregl.MapLibreEvent) => void
@@ -502,23 +512,49 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
     }
   }
 
+  private removeCluster(id: string): void {
+    const entry = this.clusterSources.get(id);
+    if (entry) {
+      const map = this.map;
+      if (map) {
+        for (const h of entry.handlers) {
+          map.off(
+            h.event as 'click',
+            h.layerId,
+            h.listener as (e: maplibregl.MapMouseEvent) => void,
+          );
+        }
+        for (const lId of entry.layerIds) {
+          if (map.getLayer(lId)) {
+            map.removeLayer(lId);
+          }
+        }
+        if (map.getSource(entry.sourceId)) {
+          map.removeSource(entry.sourceId);
+        }
+      }
+      this.clusterSources.delete(id);
+    }
+  }
+
   public async addMarkerCluster(options: ClusterOptions): Promise<void> {
     if (!this.map) return;
+
+    const map = this.map;
+    if (!(await this.waitForStyleReady(map))) return;
+    if (this.map !== map) return;
+
+    if (this.clusterSources.has(options.id)) {
+      this.removeCluster(options.id);
+    }
 
     const sourceId = `cluster-source-${options.id}`;
     const clusterLayerId = `${options.id}-clusters`;
     const countLayerId = `${options.id}-cluster-count`;
     const unclusteredLayerId = `${options.id}-unclustered-point`;
+    const layerIds = [clusterLayerId, countLayerId, unclusteredLayerId];
 
-    if (this.clusterSources.has(options.id)) {
-      if (this.map.getLayer(countLayerId)) this.map.removeLayer(countLayerId);
-      if (this.map.getLayer(clusterLayerId)) this.map.removeLayer(clusterLayerId);
-      if (this.map.getLayer(unclusteredLayerId)) this.map.removeLayer(unclusteredLayerId);
-      if (this.map.getSource(sourceId)) this.map.removeSource(sourceId);
-      this.clusterSources.delete(options.id);
-    }
-
-    const features: GeoJSON.Feature[] = options.markers.map((m) => ({
+    const features: GeoJSON.Feature[] = options.markers.map((m, index) => ({
       type: 'Feature',
       geometry: {
         type: 'Point',
@@ -526,6 +562,8 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
       },
       properties: {
         title: m.title || '',
+        index,
+        id: m.id || `cluster_marker_${index}`,
       },
     }));
 
@@ -534,7 +572,7 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
       features,
     };
 
-    this.map.addSource(sourceId, {
+    map.addSource(sourceId, {
       type: 'geojson',
       data: geojson,
       cluster: true,
@@ -542,7 +580,7 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
       clusterRadius: options.radius || 50,
     });
 
-    this.map.addLayer({
+    map.addLayer({
       id: clusterLayerId,
       type: 'circle',
       source: sourceId,
@@ -553,7 +591,7 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
       },
     });
 
-    this.map.addLayer({
+    map.addLayer({
       id: countLayerId,
       type: 'symbol',
       source: sourceId,
@@ -565,7 +603,7 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
       },
     });
 
-    this.map.addLayer({
+    map.addLayer({
       id: unclusteredLayerId,
       type: 'circle',
       source: sourceId,
@@ -578,7 +616,60 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
       },
     });
 
-    this.clusterSources.add(options.id);
+    const handlers: Array<{ event: string; layerId: string; listener: MapLayerEventListener }> = [];
+
+    const clusterClickHandler: MapLayerEventListener = async (e) => {
+      const queryFeatures = map.queryRenderedFeatures(e.point, { layers: [clusterLayerId] });
+      const targetFeature = queryFeatures?.[0];
+      const clusterId = targetFeature?.properties?.cluster_id;
+      const source = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+      if (
+        source &&
+        clusterId !== undefined &&
+        typeof source.getClusterExpansionZoom === 'function'
+      ) {
+        try {
+          const zoom = await source.getClusterExpansionZoom(clusterId);
+          if (this.map && targetFeature?.geometry.type === 'Point') {
+            const center = targetFeature.geometry.coordinates as [number, number];
+            this.map.easeTo({ center, zoom });
+          }
+        } catch {
+          // Ignore zoom calculation error
+        }
+      }
+    };
+    map.on('click', clusterLayerId, clusterClickHandler);
+    handlers.push({
+      event: 'click',
+      layerId: clusterLayerId,
+      listener: clusterClickHandler,
+    });
+
+    const unclusteredClickHandler: MapLayerEventListener = (e) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const index = feature.properties?.index;
+      if (index !== undefined && options.markers[index]) {
+        const markerOpt = options.markers[index];
+        const mapEvent: WindifyMapEvent = {
+          type: 'click',
+          lngLat: [e.lngLat.lng, e.lngLat.lat],
+          point: e.point ? { x: e.point.x, y: e.point.y } : undefined,
+          originalEvent: e.originalEvent,
+          target: feature,
+        };
+        markerOpt.onClick?.(mapEvent);
+      }
+    };
+    map.on('click', unclusteredLayerId, unclusteredClickHandler);
+    handlers.push({
+      event: 'click',
+      layerId: unclusteredLayerId,
+      listener: unclusteredClickHandler,
+    });
+
+    this.clusterSources.set(options.id, { sourceId, layerIds, handlers });
   }
 
   public clearMarkers(): void {
@@ -587,20 +678,9 @@ export class WindifyMapLibre extends AbstractWindifyEngine {
     }
     this.markers.clear();
 
-    if (this.map) {
-      for (const clusterId of this.clusterSources) {
-        const sourceId = `cluster-source-${clusterId}`;
-        const clusterLayerId = `${clusterId}-clusters`;
-        const countLayerId = `${clusterId}-cluster-count`;
-        const unclusteredLayerId = `${clusterId}-unclustered-point`;
-
-        if (this.map.getLayer(countLayerId)) this.map.removeLayer(countLayerId);
-        if (this.map.getLayer(clusterLayerId)) this.map.removeLayer(clusterLayerId);
-        if (this.map.getLayer(unclusteredLayerId)) this.map.removeLayer(unclusteredLayerId);
-        if (this.map.getSource(sourceId)) this.map.removeSource(sourceId);
-      }
+    for (const clusterId of Array.from(this.clusterSources.keys())) {
+      this.removeCluster(clusterId);
     }
-    this.clusterSources.clear();
   }
 
   public destroy(): void {
