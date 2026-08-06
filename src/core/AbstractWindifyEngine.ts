@@ -6,6 +6,7 @@ import type {
   IWindifyMapEngine,
   MapOptions,
   MarkerOptions,
+  PopupOptions,
   WindifyEventListener,
   WindifyEventType,
 } from './types';
@@ -62,6 +63,10 @@ export abstract class AbstractWindifyEngine implements IWindifyMapEngine {
   public abstract removeMarker(id: string): void;
   public abstract addMarkerCluster(options: ClusterOptions): Promise<void>;
   public abstract clearMarkers(): void;
+
+  // Stage 4: Popups
+  public abstract addPopup(options: PopupOptions): string;
+  public abstract removePopup(id: string): void;
 
   public getIsMounted(): boolean {
     return this.isMounted;

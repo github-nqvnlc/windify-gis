@@ -52,11 +52,21 @@
 ### 4. Giai đoạn 4: React Sub-Components & Documentation (CDS-15)
 
 - **React Components (`src/react/`)**:
-  - `<WindifyMarker>`: Marker JSX tự động gắn/gỡ khỏi engine qua `useWindifyMap()`.
-  - `<WindifyGeoJSON>`: GeoJSON layer JSX tự động cập nhật props và dọn dẹp khi unmount.
-  - `<WindifyPopup>`: Popup content component cho JSX structure.
+  - `<WindifyMarker>`: Marker JSX tự động gắn/gỡ khỏi engine, đồng bộ vị trí, title,
+    trạng thái draggable, custom element và callback mới nhất.
+  - `<WindifyGeoJSON>`: GeoJSON layer JSX đồng bộ data/style/visibility, xử lý lỗi qua
+    `onError`, hủy pending load và dọn dẹp an toàn khi props đổi hoặc unmount.
+  - `<WindifyPopup>`: Portal nội dung React vào popup native, hỗ trợ popup độc lập theo tọa độ
+    hoặc lồng trong `<WindifyMarker>` để bind tự động.
+- **Core popup parity**:
+  - Bổ sung `PopupOptions`, `addPopup` và `removePopup` trên unified engine contract.
+  - Triển khai bind/unbind/cleanup tương đương cho Leaflet và MapLibre.
+- **Tài liệu & ví dụ**:
+  - Cập nhật API table song ngữ trong `README.md` và `README_EN.md`.
+  - Bổ sung ứng dụng mẫu `examples/react-declarative-map.tsx` có thể đổi engine.
 - **Testing & Quality Assurance**:
-  - Bổ sung Unit test suites cho tất cả module mới.
-  - 100% test cases (`26/26`) đạt trạng thái PASS.
-  - Code Coverage đạt **> 85%** đối với lines/statements/functions.
-  - Kiểm tra ESLint, Prettier format và Tsup build thành công 100%.
+  - Bổ sung unit test cho lifecycle, prop synchronization, async race và error handling.
+  - Bổ sung integration test chạy cùng JSX qua adapter Leaflet và MapLibre được mock ở native boundary.
+  - Toàn bộ `51/51` test pass; coverage đạt 85.05% statements, 71.19% branches,
+    89.14% functions và 87.59% lines.
+  - Lint, type-check, format check, build ESM/CJS/DTS, publint và tree-shaking audit đều pass.

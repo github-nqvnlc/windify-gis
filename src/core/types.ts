@@ -71,6 +71,27 @@ export interface MarkerOptions {
   onClick?: (event: WindifyMapEvent) => void;
 }
 
+interface PopupBaseOptions {
+  id?: string;
+  content: HTMLElement | string;
+  className?: string;
+  closeButton?: boolean;
+}
+
+export type PopupOptions = PopupBaseOptions &
+  (
+    | {
+        /** Existing marker ID to bind the popup to instead of opening it immediately. */
+        markerId: string;
+        position?: [number, number];
+      }
+    | {
+        markerId?: never;
+        /** Standalone popup position in EPSG:4326 `[longitude, latitude]`. */
+        position: [number, number];
+      }
+  );
+
 export interface ClusterOptions {
   id: string;
   markers: MarkerOptions[];
@@ -106,6 +127,10 @@ export interface IWindifyMapEngine {
   removeMarker(id: string): void;
   addMarkerCluster(options: ClusterOptions): Promise<void>;
   clearMarkers(): void;
+
+  // Stage 4: Popups
+  addPopup(options: PopupOptions): string;
+  removePopup(id: string): void;
 }
 
 export interface WindifyLeafletOptions extends MapOptions {

@@ -1,26 +1,36 @@
-import React, { useEffect, useRef } from 'react';
-import type { WindifyMapEvent } from '../core/types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { IWindifyMapEngine, WindifyMapEvent } from '../core/types';
+import { WindifyMarkerContext } from './WindifyMarkerContext';
 import { useWindifyMap } from './useWindifyMap';
 
 export interface WindifyMarkerProps {
-  position: [number, number]; // EPSG:4326 [longitude, latitude]
+  /** Marker position in EPSG:4326 `[longitude, latitude]`. */
+  position: [number, number];
   title?: string;
   draggable?: boolean;
+  /** Native marker element or an HTML/SVG string. */
   element?: HTMLElement | string;
   onClick?: (event: WindifyMapEvent) => void;
+  /** A nested `<WindifyPopup />` binds itself to this marker. */
   children?: React.ReactNode;
 }
 
-export const WindifyMarker: React.FC<WindifyMarkerProps> = ({
+interface MarkerRegistration {
+  engine: IWindifyMapEngine;
+  id: string;
+}
+
+/** Declaratively adds, updates, and removes a marker on the active map engine. */
+export function WindifyMarker({
   position,
   title,
   draggable,
   element,
   onClick,
   children,
-}) => {
+}: WindifyMarkerProps) {
   const { engine, isReady } = useWindifyMap();
-  const markerIdRef = useRef<string | null>(null);
+  const [registration, setRegistration] = useState<MarkerRegistration | null>(null);
 
   const onClickRef = useRef(onClick);
   useEffect(() => {
@@ -30,29 +40,24 @@ export const WindifyMarker: React.FC<WindifyMarkerProps> = ({
   useEffect(() => {
     if (!engine || !isReady) return;
 
-    let markerElement: HTMLElement | string | undefined = element;
-    if (!markerElement && children) {
-      const container = document.createElement('div');
-      container.className = 'windify-jsx-marker';
-      markerElement = container;
-    }
-
     const id = engine.addMarker({
       position,
       title,
       draggable,
-      element: markerElement,
+      element,
       onClick: (e) => onClickRef.current?.(e),
     });
-    markerIdRef.current = id;
+    if (id) setRegistration({ engine, id });
 
     return () => {
-      if (markerIdRef.current && engine) {
-        engine.removeMarker(markerIdRef.current);
-        markerIdRef.current = null;
-      }
+      if (id) engine.removeMarker(id);
     };
-  }, [engine, isReady, position[0], position[1], title, draggable, element, children]);
+  }, [engine, isReady, position[0], position[1], title, draggable, element]);
 
-  return null;
-};
+  const markerId = registration?.engine === engine ? registration.id : null;
+  const contextValue = useMemo(() => ({ markerId }), [markerId]);
+
+  return (
+    <WindifyMarkerContext.Provider value={contextValue}>{children}</WindifyMarkerContext.Provider>
+  );
+}

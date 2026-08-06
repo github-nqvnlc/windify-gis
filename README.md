@@ -86,22 +86,23 @@ npm install react react-dom
 
 ```tsx
 import React from 'react';
-import { WindifyMap, WindifyMarker, WindifyGeoJSON } from '@vn-gis/windify-gis/react';
+import { WindifyGeoJSON, WindifyMap, WindifyMarker, WindifyPopup } from '@vn-gis/windify-gis/react';
 
 const App = () => {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <WindifyMap engine="leaflet" center={[106.660172, 10.762622]} zoom={12}>
-        <WindifyMarker
-          position={[106.660172, 10.762622]}
-          title="TP. Hồ Chí Minh"
-          onClick={(e) => console.log('Marker clicked:', e.lngLat)}
-        />
+        <WindifyMarker position={[106.660172, 10.762622]} title="TP. Hồ Chí Minh">
+          <WindifyPopup>
+            <strong>Trung tâm TP. Hồ Chí Minh</strong>
+          </WindifyPopup>
+        </WindifyMarker>
         <WindifyGeoJSON
           id="sample-polygons"
           data="https://raw.githubusercontent.com/datasets/geo-boundaries/master/data/world.geojson"
           style={{ fillColor: '#3388ff', fillOpacity: 0.3 }}
           visible={true}
+          onError={(error) => console.error(error)}
         />
       </WindifyMap>
     </div>
@@ -133,6 +134,8 @@ export default App;
 - `removeMarker(id: string): void` — Xóa Marker theo ID.
 - `addMarkerCluster(options: ClusterOptions): Promise<void>` — Thêm Gom cụm điểm (Marker Cluster).
 - `clearMarkers(): void` — Xóa toàn bộ Marker & Marker Cluster.
+- `addPopup(options: PopupOptions): string` — Mở popup độc lập hoặc gắn popup vào marker.
+- `removePopup(id: string): void` — Xóa popup và giải phóng liên kết native.
 
 #### `GeoJSONLayerOptions`
 
@@ -168,23 +171,74 @@ await engine.addGeoJSONLayer({
 | `visible`  | `boolean`                                                   | Trạng thái hiển thị ban đầu, mặc định `true`.                      |
 | `onClick`  | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | Trả feature cùng `properties` tương ứng và sự kiện đã chuẩn hóa.   |
 
+#### `PopupOptions`
+
+| Thuộc tính    | Kiểu                    | Mô tả                                                         |
+| ------------- | ----------------------- | ------------------------------------------------------------- |
+| `id`          | `string`                | ID tùy chọn; package tự sinh nếu bỏ qua.                      |
+| `position`    | `[number, number]`      | Vị trí EPSG:4326, bắt buộc với popup độc lập.                 |
+| `markerId`    | `string`                | ID marker hiện có; khi có giá trị, popup được gắn vào marker. |
+| `content`     | `HTMLElement \| string` | Nội dung native của popup.                                    |
+| `className`   | `string`                | CSS class cho popup native.                                   |
+| `closeButton` | `boolean`               | Bật/tắt nút đóng.                                             |
+
+Phải cung cấp `position` hoặc một `markerId` hợp lệ. Tọa độ luôn theo thứ tự
+`[longitude, latitude]`; adapter Leaflet tự chuyển sang thứ tự native `[latitude, longitude]`.
+
 ### 2. React Components (`@vn-gis/windify-gis/react`)
 
 #### `<WindifyMap />`
 
-- **Props**: `engine`, `center`, `zoom`, `baseMapUrl`, `styleUrl`, `className`, `style`, `onMapReady`, `children`.
+| Prop         | Kiểu                                  | Mặc định            | Mô tả                                   |
+| ------------ | ------------------------------------- | ------------------- | --------------------------------------- |
+| `engine`     | `'leaflet' \| 'maplibre'`             | Bắt buộc            | Engine bản đồ.                          |
+| `center`     | `[number, number]`                    | Bắt buộc            | Tâm bản đồ theo EPSG:4326 `[lng, lat]`. |
+| `zoom`       | `number`                              | Bắt buộc            | Mức zoom.                               |
+| `baseMapUrl` | `string`                              | `undefined`         | Tile URL cho Leaflet.                   |
+| `styleUrl`   | `string \| Record<string, unknown>`   | `undefined`         | Style URL/object cho MapLibre.          |
+| `className`  | `string`                              | `undefined`         | CSS class của container.                |
+| `style`      | `React.CSSProperties`                 | kích thước mặc định | Inline style của container.             |
+| `onMapReady` | `(engine: IWindifyMapEngine) => void` | `undefined`         | Gọi sau khi engine sẵn sàng.            |
+| `children`   | `React.ReactNode`                     | `undefined`         | Sub-components hoặc controls tùy chỉnh. |
 
 #### `<WindifyMarker />`
 
-- **Props**: `position`, `title`, `draggable`, `element`, `onClick`, `children`.
+| Prop        | Kiểu                               | Mặc định    | Mô tả                            |
+| ----------- | ---------------------------------- | ----------- | -------------------------------- |
+| `position`  | `[number, number]`                 | Bắt buộc    | Vị trí EPSG:4326 `[lng, lat]`.   |
+| `title`     | `string`                           | `undefined` | Accessible title/tooltip native. |
+| `draggable` | `boolean`                          | `undefined` | Cho phép kéo marker.             |
+| `element`   | `HTMLElement \| string`            | `undefined` | Custom marker HTML/SVG.          |
+| `onClick`   | `(event: WindifyMapEvent) => void` | `undefined` | Nhận event chuẩn hóa.            |
+| `children`  | `React.ReactNode`                  | `undefined` | Dùng để lồng `<WindifyPopup />`. |
 
 #### `<WindifyGeoJSON />`
 
-- **Props**: `id`, `data`, `style`, `visible`, `onClick`.
+| Prop      | Kiểu                                                        | Mặc định    | Mô tả                                 |
+| --------- | ----------------------------------------------------------- | ----------- | ------------------------------------- |
+| `id`      | `string`                                                    | Bắt buộc    | ID layer duy nhất.                    |
+| `data`    | `GeoJSONData`                                               | Bắt buộc    | GeoJSON inline hoặc URL.              |
+| `style`   | `GeoJSONStyle \| GeoJSONStyleFunction`                      | `undefined` | Style chung hoặc theo feature.        |
+| `visible` | `boolean`                                                   | `true`      | Có thể đổi mà không nạp lại layer.    |
+| `onClick` | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | `undefined` | Callback feature click mới nhất.      |
+| `onError` | `(error: Error) => void`                                    | `undefined` | Nhận lỗi tải/validate/render GeoJSON. |
 
 #### `<WindifyPopup />`
 
-- **Props**: `position`, `className`, `children`.
+| Prop          | Kiểu               | Mặc định                  | Mô tả                                        |
+| ------------- | ------------------ | ------------------------- | -------------------------------------------- |
+| `id`          | `string`           | tự sinh                   | ID popup native.                             |
+| `position`    | `[number, number]` | `undefined`               | Bắt buộc nếu popup không nằm trong marker.   |
+| `className`   | `string`           | `'windify-popup-content'` | CSS class của content React.                 |
+| `closeButton` | `boolean`          | `true`                    | Bật/tắt nút đóng native.                     |
+| `children`    | `React.ReactNode`  | `undefined`               | Nội dung React được portal vào popup native. |
+
+Các sub-component chỉ tạo resource sau khi map sẵn sàng. Khi props cấu trúc thay đổi,
+resource cũ được dọn trước khi tạo resource mới; `visible` và callback được đồng bộ riêng để
+tránh nạp lại không cần thiết. Unmount component hoặc đổi engine sẽ tự động xóa marker, popup,
+layer và listener liên quan.
+
+Ví dụ React đầy đủ nằm tại [`examples/react-declarative-map.tsx`](./examples/react-declarative-map.tsx).
 
 ## 📄 Giấy phép
 

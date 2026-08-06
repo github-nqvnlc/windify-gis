@@ -23,5 +23,6 @@ export type {
   GeoJSONStyleFunction,
   GeoJSONLayerOptions,
   MarkerOptions,
+  PopupOptions,
   ClusterOptions,
 } from './types';

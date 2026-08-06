@@ -1,6 +1,6 @@
 import type { FeatureCollection } from 'geojson';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GeoJSONData, GeoJSONFeature } from '../types';
+import type { GeoJSONData, GeoJSONFeature, PopupOptions } from '../types';
 import { WindifyLeaflet } from './WindifyLeaflet';
 
 const leafletMocks = vi.hoisted(() => {
@@ -12,6 +12,7 @@ const leafletMocks = vi.hoisted(() => {
   const mockTileLayer = { addTo: vi.fn().mockReturnThis() };
   const mockMarker = {
     addTo: vi.fn().mockReturnThis(),
+    bindPopup: vi.fn().mockReturnThis(),
     on: vi.fn().mockImplementation((_event: string, listener: (event: unknown) => void) => {
       listener({
         latlng: { lng: 106.66, lat: 10.76 },
@@ -19,6 +20,13 @@ const leafletMocks = vi.hoisted(() => {
         originalEvent: {},
       });
     }),
+    unbindPopup: vi.fn().mockReturnThis(),
+  };
+  const mockPopup = {
+    openOn: vi.fn().mockReturnThis(),
+    remove: vi.fn().mockReturnThis(),
+    setContent: vi.fn().mockReturnThis(),
+    setLatLng: vi.fn().mockReturnThis(),
   };
   const mockLayerGroup = {
     addTo: vi.fn().mockReturnThis(),
@@ -53,8 +61,10 @@ const leafletMocks = vi.hoisted(() => {
     mockLayerGroup,
     mockMap,
     mockMarker,
+    mockPopup,
     mockTileLayer,
     tileLayer: vi.fn().mockReturnValue(mockTileLayer),
+    popup: vi.fn().mockReturnValue(mockPopup),
   };
 });
 
@@ -67,6 +77,7 @@ vi.mock('leaflet', () => ({
     layerGroup: leafletMocks.layerGroup,
     map: leafletMocks.map,
     marker: leafletMocks.marker,
+    popup: leafletMocks.popup,
     tileLayer: leafletMocks.tileLayer,
   },
 }));
@@ -403,6 +414,54 @@ describe('WindifyLeaflet', () => {
 
       engine.clearMarkers();
       expect(leafletMocks.mockMap.removeLayer).toHaveBeenCalledWith(leafletMocks.mockLayerGroup);
+    });
+  });
+
+  describe('Stage 4: Popup parity', () => {
+    it('opens standalone popups using EPSG:4326 coordinates and removes them', () => {
+      const engine = createEngine();
+      const content = document.createElement('div');
+
+      const popupId = engine.addPopup({
+        id: 'popup-1',
+        position: [106.66, 10.76],
+        content,
+        closeButton: false,
+      });
+
+      expect(popupId).toBe('popup-1');
+      expect(leafletMocks.popup).toHaveBeenCalledWith(
+        expect.objectContaining({ closeButton: false }),
+      );
+      expect(leafletMocks.mockPopup.setContent).toHaveBeenCalledWith(content);
+      expect(leafletMocks.mockPopup.setLatLng).toHaveBeenCalledWith([10.76, 106.66]);
+      expect(leafletMocks.mockPopup.openOn).toHaveBeenCalledWith(leafletMocks.mockMap);
+
+      engine.removePopup(popupId);
+      expect(leafletMocks.mockPopup.remove).toHaveBeenCalled();
+    });
+
+    it('binds a popup to a marker and cleans it up with the marker', () => {
+      const engine = createEngine();
+      const markerId = engine.addMarker({ id: 'marker-popup', position: [106.66, 10.76] });
+
+      engine.addPopup({ markerId, content: '<strong>Details</strong>' });
+      expect(leafletMocks.mockMarker.bindPopup).toHaveBeenCalledWith(leafletMocks.mockPopup);
+
+      engine.removeMarker(markerId);
+      expect(leafletMocks.mockMarker.unbindPopup).toHaveBeenCalled();
+      expect(leafletMocks.mockPopup.remove).toHaveBeenCalled();
+    });
+
+    it('rejects popups without a valid anchor', () => {
+      const engine = createEngine();
+
+      expect(() =>
+        engine.addPopup({ content: 'Missing position' } as unknown as PopupOptions),
+      ).toThrow('requires a position');
+      expect(() => engine.addPopup({ markerId: 'missing', content: 'Missing marker' })).toThrow(
+        'unknown marker',
+      );
     });
   });
 });

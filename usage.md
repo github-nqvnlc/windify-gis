@@ -15,11 +15,13 @@ Tài liệu này chứa các quy tắc và hướng dẫn dành riêng cho AI Ag
   - Implementation riêng cho từng platform: `src/core/leaflet/` và `src/core/maplibre/`.
 - **React Wrapper (`src/react`)**:
   - Chứa component `<WindifyMap>` thống nhất chung cho mọi engine.
+  - Chứa các resource component declarative `<WindifyMarker>`, `<WindifyPopup>` và
+    `<WindifyGeoJSON>`; các component tự đồng bộ props và cleanup resource native.
   - Chứa React Hook `useWindifyMap` dùng Context API để giao tiếp với bản đồ.
 
 ## 2. Quy tắc lập trình (Coding Guidelines)
 
-- **Feature Parity (Đồng bộ tính năng):** Bất kỳ tính năng bản đồ nào mới được thêm vào (ví dụ: vẽ Marker, vẽ Polygon, đổi Style) đều **BẮT BUỘC** phải:
+- **Feature Parity (Đồng bộ tính năng):** Bất kỳ tính năng bản đồ nào mới được thêm vào (ví dụ: vẽ Marker, Popup, Polygon, đổi Style) đều **BẮT BUỘC** phải:
   1. Khai báo vào interface `IWindifyMapEngine`.
   2. Implement đồng thời trên cả class của Leaflet và MapLibre.
 - **Lazy Loading (Tối ưu bundle):** Không bao giờ được import tĩnh toàn bộ thư viện `leaflet` hay `maplibre-gl` vào file chung, phải dùng Dynamic Import (như đang làm trong `<WindifyMap>`) để tree-shaking hoạt động hiệu quả.

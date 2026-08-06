@@ -6,7 +6,7 @@ Windify GIS is a high-performance, cross-platform GIS map package designed to pr
 
 - **Multi-Engine Support**: Seamlessly switch between `leaflet` and `maplibre` with a single unified API.
 - **Dynamic Loading**: Map engines are loaded asynchronously on demand, optimizing your application bundle size and tree-shaking capabilities.
-- **Unified React Component**: Use `<WindifyMap />` to render maps effortlessly with built-in lifecycle management and zero memory leaks.
+- **Declarative React Components**: Use `<WindifyMap />`, `<WindifyMarker />`, `<WindifyPopup />`, and `<WindifyGeoJSON />` with automatic prop synchronization and cleanup.
 - **Contextual Hooks**: Built-in `useWindifyMap` hook allowing nested components to easily interact with the map instance without passing props.
 - **TypeScript First**: Fully typed interfaces (`IWindifyMapEngine`, `WindifyMapProps`) for excellent developer experience and code safety.
 
@@ -192,6 +192,12 @@ If you are using the core engine directly without React, or accessing it via `on
 - `removeLayer(id: string): void`
 - `setLayerVisibility(id: string, visible: boolean): void`
 - `hasLayer(id: string): boolean`
+- `addMarker(options: MarkerOptions): string`
+- `removeMarker(id: string): void`
+- `addMarkerCluster(options: ClusterOptions): Promise<void>`
+- `clearMarkers(): void`
+- `addPopup(options: PopupOptions): string`
+- `removePopup(id: string): void`
 
 ### GeoJSON Layers
 
@@ -226,6 +232,59 @@ await engine.addGeoJSONLayer({
 | `style`   | `GeoJSONStyle \| GeoJSONStyleFunction`                      | Shared or per-feature styling.                                           |
 | `visible` | `boolean`                                                   | Initial visibility; defaults to `true`.                                  |
 | `onClick` | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | Receives the clicked feature with its properties and a normalized event. |
+
+### Declarative React Sub-Components
+
+All coordinates use EPSG:4326 `[longitude, latitude]`. Structural prop changes replace the
+corresponding native resource, while visibility and callback updates are synchronized without an
+unnecessary reload. Resources are removed automatically on unmount or engine changes.
+
+#### `<WindifyMarker />`
+
+| Prop        | Type                               | Default     | Description                            |
+| ----------- | ---------------------------------- | ----------- | -------------------------------------- |
+| `position`  | `[number, number]`                 | Required    | Marker position in EPSG:4326.          |
+| `title`     | `string`                           | `undefined` | Native accessible title/tooltip.       |
+| `draggable` | `boolean`                          | `undefined` | Enables native marker dragging.        |
+| `element`   | `HTMLElement \| string`            | `undefined` | Custom HTML/SVG marker content.        |
+| `onClick`   | `(event: WindifyMapEvent) => void` | `undefined` | Receives the normalized click event.   |
+| `children`  | `React.ReactNode`                  | `undefined` | Use this to nest a `<WindifyPopup />`. |
+
+#### `<WindifyPopup />`
+
+| Prop          | Type               | Default                   | Description                                      |
+| ------------- | ------------------ | ------------------------- | ------------------------------------------------ |
+| `id`          | `string`           | Generated                 | Native popup ID.                                 |
+| `position`    | `[number, number]` | `undefined`               | Required when the popup is not nested in marker. |
+| `className`   | `string`           | `'windify-popup-content'` | CSS class applied to the React content root.     |
+| `closeButton` | `boolean`          | `true`                    | Shows or hides the native close button.          |
+| `children`    | `React.ReactNode`  | `undefined`               | React content portaled into the native popup.    |
+
+Nest a popup to bind it to a marker, or provide `position` to open a standalone popup:
+
+```tsx
+<WindifyMarker position={[106.660172, 10.762622]} title="Ho Chi Minh City">
+  <WindifyPopup>
+    <strong>City center</strong>
+  </WindifyPopup>
+</WindifyMarker>
+
+<WindifyPopup position={[105.83416, 21.027763]}>Hanoi</WindifyPopup>
+```
+
+#### `<WindifyGeoJSON />`
+
+| Prop      | Type                                                        | Default     | Description                                    |
+| --------- | ----------------------------------------------------------- | ----------- | ---------------------------------------------- |
+| `id`      | `string`                                                    | Required    | Unique native layer ID.                        |
+| `data`    | `GeoJSONData`                                               | Required    | Inline RFC 7946 GeoJSON or URL.                |
+| `style`   | `GeoJSONStyle \| GeoJSONStyleFunction`                      | `undefined` | Shared or per-feature style.                   |
+| `visible` | `boolean`                                                   | `true`      | Toggles visibility without reloading data.     |
+| `onClick` | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | `undefined` | Receives the latest feature click callback.    |
+| `onError` | `(error: Error) => void`                                    | `undefined` | Handles load, validation, or rendering errors. |
+
+See [`examples/react-declarative-map.tsx`](./examples/react-declarative-map.tsx) for a complete
+example that can switch between Leaflet and MapLibre.
 
 ### Direct Engine Imports (Advanced)
 
