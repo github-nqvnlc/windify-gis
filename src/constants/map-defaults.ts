@@ -3,7 +3,7 @@ import { TILE_STYLES } from './map-tiles';
 /**
  * Default map center coordinates (Vietnam).
  */
-export const VIETNAM_CENTER: [number, number] = [16.0544, 108.2022];
+export const VIETNAM_CENTER: [number, number] = [108.2022, 16.0544];
 
 /**
  * Default zoom level when the map first loads.

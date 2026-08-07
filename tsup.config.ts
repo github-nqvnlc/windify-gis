@@ -7,6 +7,7 @@ export default defineConfig({
     'core/leaflet/index': 'src/core/leaflet/index.ts',
     'core/maplibre/index': 'src/core/maplibre/index.ts',
     'react/index': 'src/react/index.ts',
+    'constants/index': 'src/constants/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

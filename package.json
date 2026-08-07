@@ -64,6 +64,16 @@
         "types": "./dist/react/index.d.cts",
         "default": "./dist/react/index.cjs"
       }
+    },
+    "./constants": {
+      "import": {
+        "types": "./dist/constants/index.d.ts",
+        "default": "./dist/constants/index.mjs"
+      },
+      "require": {
+        "types": "./dist/constants/index.d.cts",
+        "default": "./dist/constants/index.cjs"
+      }
     }
   },
   "typesVersions": {
@@ -79,6 +89,9 @@
       ],
       "react": [
         "./dist/react/index.d.ts"
+      ],
+      "constants": [
+        "./dist/constants/index.d.ts"
       ]
     }
   },

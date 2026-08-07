@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { EngineType, IWindifyMapEngine } from '../core/types';
 import { WindifyMapContext, type WindifyMapContextValue } from './useWindifyMap';
+import { TILE_STYLES } from '../constants/map-tiles';
+
+const resolveBaseMap = (urlOrId?: string) => {
+  if (!urlOrId) return { url: undefined, attribution: undefined };
+  const style = TILE_STYLES.find((t) => t.id === urlOrId);
+  if (style) {
+    return { url: style.url, attribution: style.attribution };
+  }
+  return { url: urlOrId, attribution: undefined };
+};
 
 /**
  * Props for the `<WindifyMap />` React component.
@@ -85,11 +95,13 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
         if (engine === 'leaflet') {
           const { WindifyLeaflet } = await import('../core/leaflet');
           if (isCancelled) return;
+          const resolvedMap = resolveBaseMap(baseMapUrl);
           instance = new WindifyLeaflet({
             container,
             center,
             zoom,
-            baseMapUrl,
+            baseMapUrl: resolvedMap.url,
+            attribution: resolvedMap.attribution,
           });
         } else if (engine === 'maplibre') {
           const { WindifyMapLibre } = await import('../core/maplibre');
@@ -179,7 +191,13 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
   useEffect(() => {
     if (!instanceRef.current || !contextValue.isReady) return;
     if (engine === 'leaflet' && baseMapUrl) {
-      instanceRef.current.setBaseMap(baseMapUrl);
+      const resolvedMap = resolveBaseMap(baseMapUrl);
+      if (resolvedMap.url) {
+        instanceRef.current.setBaseMap({
+          url: resolvedMap.url,
+          attribution: resolvedMap.attribution,
+        });
+      }
     } else if (engine === 'maplibre' && styleUrl) {
       const mapLibreInstance = instanceRef.current as unknown as {
         setStyle?: (style: unknown) => void;
