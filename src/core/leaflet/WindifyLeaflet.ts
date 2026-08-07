@@ -205,28 +205,27 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       featureStyleCache.set(feature, featureStyle);
       return featureStyle;
     };
-    const leafletStyle: L.PathOptions | L.StyleFunction | undefined =
-      typeof styleOption === 'function'
-        ? (feature) => {
-            if (!feature) return {};
-            const s = resolveFeatureStyle(feature as GeoJSONFeature);
-            return {
-              fillColor: s.fillColor,
-              fillOpacity: s.fillOpacity,
-              color: s.color,
-              weight: s.weight,
-              opacity: s.opacity,
-            };
-          }
-        : typeof styleOption === 'object' && styleOption !== null
-          ? {
-              fillColor: styleOption.fillColor,
-              fillOpacity: styleOption.fillOpacity,
-              color: styleOption.color,
-              weight: styleOption.weight,
-              opacity: styleOption.opacity,
-            }
-          : undefined;
+    let leafletStyle: L.PathOptions | L.StyleFunction | undefined;
+    if (typeof styleOption === 'function') {
+      leafletStyle = (feature) => {
+        if (!feature) return {};
+        const s = resolveFeatureStyle(feature as GeoJSONFeature);
+        const res: L.PathOptions = {};
+        if (s.fillColor !== undefined) res.fillColor = s.fillColor;
+        if (s.fillOpacity !== undefined) res.fillOpacity = s.fillOpacity;
+        if (s.color !== undefined) res.color = s.color;
+        if (s.weight !== undefined) res.weight = s.weight;
+        if (s.opacity !== undefined) res.opacity = s.opacity;
+        return res;
+      };
+    } else if (typeof styleOption === 'object' && styleOption !== null) {
+      leafletStyle = {};
+      if (styleOption.fillColor !== undefined) leafletStyle.fillColor = styleOption.fillColor;
+      if (styleOption.fillOpacity !== undefined) leafletStyle.fillOpacity = styleOption.fillOpacity;
+      if (styleOption.color !== undefined) leafletStyle.color = styleOption.color;
+      if (styleOption.weight !== undefined) leafletStyle.weight = styleOption.weight;
+      if (styleOption.opacity !== undefined) leafletStyle.opacity = styleOption.opacity;
+    }
 
     let layer: L.GeoJSON;
     try {
