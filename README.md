@@ -240,6 +240,23 @@ layer và listener liên quan.
 
 Ví dụ React đầy đủ nằm tại [`examples/react-declarative-map.tsx`](./examples/react-declarative-map.tsx).
 
+### 3. Tiện ích Không gian (Spatial Utilities)
+
+Package cung cấp sẵn các hàm tiện ích xử lý GeoJSON (`@vn-gis/windify-gis/core`), giúp tính toán kích thước và lấy tọa độ cực:
+
+- **`getGeoJSONBounds(data: GeoJSONDocument): [number, number, number, number]`**
+  Tính toán bounding box của đối tượng GeoJSON, trả về mảng `[minLng, minLat, maxLng, maxLat]`.
+
+- **`getGeoJSONExtremes(data: GeoJSONDocument): GeoJSONExtremes`**
+  Lấy 4 điểm cực của GeoJSON, trả về đối tượng:
+  `{ north: [lng, lat], south: [lng, lat], east: [lng, lat], west: [lng, lat] }`.
+
+- **`getGeoJSONCenter(data: GeoJSONDocument): [number, number]`**
+  Lấy tọa độ trung tâm (center của bounding box), trả về `[lng, lat]`.
+
+- **`extractCoordinates(data: GeoJSONDocument): Position[]`**
+  Hàm cấp thấp để trích xuất (flatten) toàn bộ tọa độ từ một Geometry, Feature hoặc FeatureCollection.
+
 ## 📄 Giấy phép
 
 MIT © Windify Team

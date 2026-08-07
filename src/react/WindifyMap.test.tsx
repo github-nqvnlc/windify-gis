@@ -228,9 +228,10 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
     );
 
     await waitFor(() => {
-      expect(setBaseMapSpy).toHaveBeenCalledWith(
-        'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
-      );
+      expect(setBaseMapSpy).toHaveBeenCalledWith({
+        url: 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
+        attribution: undefined,
+      });
     });
   });
 
