@@ -8,3 +8,4 @@ export { WindifyGeoJSON } from './WindifyGeoJSON';
 export type { WindifyGeoJSONProps } from './WindifyGeoJSON';
 export { WindifyPopup } from './WindifyPopup';
 export type { WindifyPopupProps } from './WindifyPopup';
+export type { IWindifyMapEngine } from '../core/types';
