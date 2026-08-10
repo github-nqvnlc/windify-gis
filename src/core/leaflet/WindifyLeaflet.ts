@@ -47,7 +47,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       return;
     }
 
-    const defaultUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const defaultUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
     const leafletCenter: [number, number] = [this.center[1], this.center[0]];
 
     const mapOptions: L.MapOptions = {
@@ -64,6 +64,13 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
     }
 
     this.map = L.map(this.container, mapOptions);
+
+    // Xóa cờ Ukraine khỏi prefix mặc định của Leaflet
+    if (this.map.attributionControl) {
+      this.map.attributionControl.setPrefix(
+        '<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>',
+      );
+    }
 
     this.tileLayer = L.tileLayer(defaultUrl, {
       attribution: this.defaultAttribution,
