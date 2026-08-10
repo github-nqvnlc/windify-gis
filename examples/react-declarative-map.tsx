@@ -36,9 +36,7 @@ export function DeclarativeMapExample() {
   return (
     <main style={{ height: '100vh', position: 'relative' }}>
       <nav style={{ left: 12, position: 'absolute', top: 12, zIndex: 1000 }}>
-        <button onClick={() => setEngine(engine === 'leaflet' ? 'maplibre' : 'leaflet')}>
-          Engine: {engine}
-        </button>
+        <button onClick={() => setEngine('leaflet')}>Engine: {engine}</button>
         <button onClick={() => setIsBoundaryVisible((visible) => !visible)}>
           {isBoundaryVisible ? 'Hide' : 'Show'} boundary
         </button>

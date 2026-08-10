@@ -8,11 +8,11 @@ Tài liệu này chứa các quy tắc và hướng dẫn dành riêng cho AI Ag
 
 ## 1. Kiến trúc dự án (Architecture)
 
-- **windify-gis** là một package bản đồ hỗ trợ đa nền tảng (`leaflet` và `maplibre-gl`).
+- **windify-gis** là một package bản đồ hỗ trợ `leaflet`.
 - **Core (`src/core`)**: Chứa logic thuần (Engine-agnostic).
   - Khai báo interface gốc: `IWindifyMapEngine` tại `src/core/types.ts`.
   - Class trừu tượng: `AbstractWindifyEngine.ts`.
-  - Implementation riêng cho từng platform: `src/core/leaflet/` và `src/core/maplibre/`.
+  - Implementation riêng: `src/core/leaflet/`.
 - **React Wrapper (`src/react`)**:
   - Chứa component `<WindifyMap>` thống nhất chung cho mọi engine.
   - Chứa các resource component declarative `<WindifyMarker>`, `<WindifyPopup>` và
@@ -23,8 +23,8 @@ Tài liệu này chứa các quy tắc và hướng dẫn dành riêng cho AI Ag
 
 - **Feature Parity (Đồng bộ tính năng):** Bất kỳ tính năng bản đồ nào mới được thêm vào (ví dụ: vẽ Marker, Popup, Polygon, đổi Style) đều **BẮT BUỘC** phải:
   1. Khai báo vào interface `IWindifyMapEngine`.
-  2. Implement đồng thời trên cả class của Leaflet và MapLibre.
-- **Lazy Loading (Tối ưu bundle):** Không bao giờ được import tĩnh toàn bộ thư viện `leaflet` hay `maplibre-gl` vào file chung, phải dùng Dynamic Import (như đang làm trong `<WindifyMap>`) để tree-shaking hoạt động hiệu quả.
+  2. Implement trên class của Leaflet.
+- **Lazy Loading (Tối ưu bundle):** Không bao giờ được import tĩnh toàn bộ thư viện `leaflet` vào file chung, phải dùng Dynamic Import (như đang làm trong `<WindifyMap>`) để tree-shaking hoạt động hiệu quả.
 - **TypeScript:** Tuyệt đối tuân thủ TypeScript (Strict mode). Không dùng `any`. Khai báo kiểu dữ liệu rõ ràng cho tất cả tham số và giá trị trả về.
 
 ## 3. Cập nhật React Component

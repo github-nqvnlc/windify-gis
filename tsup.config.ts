@@ -5,7 +5,6 @@ export default defineConfig({
     index: 'src/index.ts',
     'core/index': 'src/core/index.ts',
     'core/leaflet/index': 'src/core/leaflet/index.ts',
-    'core/maplibre/index': 'src/core/maplibre/index.ts',
     'react/index': 'src/react/index.ts',
     'constants/index': 'src/constants/index.ts',
   },
@@ -21,5 +20,5 @@ export default defineConfig({
       js: format === 'cjs' ? '.cjs' : '.mjs',
     };
   },
-  external: ['react', 'react-dom', 'leaflet', 'maplibre-gl'],
+  external: ['react', 'react-dom', 'leaflet'],
 });

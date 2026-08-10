@@ -21,7 +21,6 @@
       "windify-gis": ["./src/index.ts"],
       "windify-gis/core": ["./src/core/index.ts"],
       "windify-gis/core/leaflet": ["./src/core/leaflet/index.ts"],
-      "windify-gis/core/maplibre": ["./src/core/maplibre/index.ts"],
       "windify-gis/react": ["./src/react/index.ts"]
     }
   },

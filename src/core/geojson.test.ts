@@ -1,11 +1,6 @@
 import type { FeatureCollection } from 'geojson';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  addMapLibreStyleProperties,
-  isGeoJSON,
-  loadGeoJSON,
-  removeMapLibreStyleProperties,
-} from './geojson';
+import { isGeoJSON, loadGeoJSON } from './geojson';
 
 const featureCollection = {
   type: 'FeatureCollection',
@@ -91,35 +86,5 @@ describe('GeoJSON utilities', () => {
     );
 
     await expect(loadGeoJSON('')).rejects.toThrow('URL must not be empty');
-  });
-
-  it('injects and removes private MapLibre style properties without changing user data', () => {
-    const styled = addMapLibreStyleProperties(featureCollection, (feature) => ({
-      fillColor: feature.properties?.category === 'city' ? '#00ff00' : '#ff0000',
-      radius: 10,
-    }));
-    if (styled.type !== 'FeatureCollection') throw new Error('Expected a feature collection');
-
-    expect(styled.features[0]?.properties).toEqual({
-      __windify_style_fill_color: '#00ff00',
-      __windify_style_radius: 10,
-      category: 'city',
-    });
-    expect(featureCollection.features[0]?.properties).toEqual({ category: 'city' });
-    expect(removeMapLibreStyleProperties(styled.features[0]!)).toEqual(
-      featureCollection.features[0],
-    );
-  });
-
-  it('restores null feature properties after data-driven styling', () => {
-    const feature = {
-      type: 'Feature',
-      geometry: null,
-      properties: null,
-    } as const;
-    const styled = addMapLibreStyleProperties(feature, () => ({ opacity: 0.5 }));
-    if (styled.type !== 'Feature') throw new Error('Expected a feature');
-
-    expect(removeMapLibreStyleProperties(styled).properties).toBeNull();
   });
 });

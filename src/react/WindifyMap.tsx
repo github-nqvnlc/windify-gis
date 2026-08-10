@@ -16,8 +16,8 @@ const resolveBaseMap = (urlOrId?: string) => {
  * Props for the `<WindifyMap />` React component.
  */
 export interface WindifyMapProps {
-  /** Map engine implementation to render ('leaflet' | 'maplibre'). */
-  engine: EngineType;
+  /** Map engine implementation to render ('leaflet'). */
+  engine?: EngineType;
   /** Center point in EPSG:4326 format `[longitude, latitude]`. */
   center: [number, number];
   /** Map zoom level. */
@@ -28,8 +28,6 @@ export interface WindifyMapProps {
   maxZoom?: number;
   /** Optional base map tile URL template (e.g. OpenStreetMap tile URL for Leaflet). */
   baseMapUrl?: string;
-  /** Optional MapLibre style JSON URL or StyleSpecification object. */
-  styleUrl?: string | Record<string, unknown>;
   /** CSS class name applied to the container DOM element. */
   className?: string;
   /** Inline styles applied to the container DOM element. Defaults to 100% width/height. */
@@ -41,18 +39,17 @@ export interface WindifyMapProps {
 }
 
 /**
- * `<WindifyMap />` is a unified React wrapper component supporting multi-engine map rendering (Leaflet and MapLibre GL JS).
+ * `<WindifyMap />` is a unified React wrapper component supporting Leaflet map rendering.
  *
  * Features:
  * - Dynamic engine loading for optimal bundle size / tree-shaking support.
- * - Smooth props update (`center`, `zoom`, `baseMapUrl`, `styleUrl`) without re-creating the native map instance.
+ * - Smooth props update (`center`, `zoom`, `baseMapUrl`) without re-creating the native map instance.
  * - StrictMode compliant lifecycle management with zero memory leaks.
  * - Context Provider integration via `useWindifyMap()`.
  *
  * @example
  * ```tsx
  * <WindifyMap
- *   engine="leaflet"
  *   center={[106.660172, 10.762622]}
  *   zoom={10}
  *   onMapReady={(engine) => console.log('Map ready:', engine)}
@@ -60,13 +57,12 @@ export interface WindifyMapProps {
  * ```
  */
 export const WindifyMap: React.FC<WindifyMapProps> = ({
-  engine,
+  engine = 'leaflet',
   center,
   zoom,
   minZoom,
   maxZoom,
   baseMapUrl,
-  styleUrl,
   className,
   style = { width: '100%', height: '100%', minHeight: '400px' },
   onMapReady,
@@ -111,17 +107,6 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
             baseMapUrl: resolvedMap.url,
             attribution: resolvedMap.attribution,
           });
-        } else if (engine === 'maplibre') {
-          const { WindifyMapLibre } = await import('../core/maplibre');
-          if (isCancelled) return;
-          instance = new WindifyMapLibre({
-            container,
-            center,
-            zoom,
-            minZoom,
-            maxZoom,
-            style: styleUrl,
-          });
         }
 
         if (isCancelled) {
@@ -147,12 +132,8 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
             userMessage =
               '❌ Windify GIS: Engine "leaflet" requires the "leaflet" package to be installed.\n' +
               'Run: npm install leaflet';
-          } else if (engine === 'maplibre' && /maplibre/i.test(errorMessage)) {
-            userMessage =
-              '❌ Windify GIS: Engine "maplibre" requires the "maplibre-gl" package to be installed.\n' +
-              'Run: npm install maplibre-gl';
           } else {
-            userMessage = `❌ Windify GIS: Failed to initialize "${engine}" engine: ${errorMessage}`;
+            userMessage = `❌ Windify GIS: Failed to initialize engine: ${errorMessage}`;
           }
 
           console.error(userMessage, err);
@@ -197,7 +178,7 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
     }
   }, [zoom, contextValue.isReady]);
 
-  // Effect 4: Dynamic BaseMap/Style Update without re-creating map
+  // Effect 4: Dynamic BaseMap Update without re-creating map
   useEffect(() => {
     if (!instanceRef.current || !contextValue.isReady) return;
     if (engine === 'leaflet' && baseMapUrl) {
@@ -208,17 +189,8 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
           attribution: resolvedMap.attribution,
         });
       }
-    } else if (engine === 'maplibre' && styleUrl) {
-      const mapLibreInstance = instanceRef.current as unknown as {
-        setStyle?: (style: unknown) => void;
-      };
-      if (typeof mapLibreInstance.setStyle === 'function') {
-        mapLibreInstance.setStyle(styleUrl);
-      } else {
-        instanceRef.current.setBaseMap(styleUrl as string);
-      }
     }
-  }, [engine, baseMapUrl, styleUrl, contextValue.isReady]);
+  }, [engine, baseMapUrl, contextValue.isReady]);
 
   return (
     <WindifyMapContext.Provider value={contextValue}>

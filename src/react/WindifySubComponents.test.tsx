@@ -45,7 +45,7 @@ function MapProvider({
 }: {
   children: React.ReactNode;
   engine: IWindifyMapEngine;
-  engineType?: 'leaflet' | 'maplibre';
+  engineType?: 'leaflet';
 }) {
   return (
     <WindifyMapContext.Provider value={{ engine, isReady: true, engineType }}>
@@ -97,7 +97,7 @@ describe('React sub-components', () => {
   it('binds a nested popup to its marker and portals live React content', async () => {
     const engine = createMockEngine();
     const { rerender, unmount } = render(
-      <MapProvider engine={engine} engineType="maplibre">
+      <MapProvider engine={engine} engineType="leaflet">
         <WindifyMarker position={[106.66, 10.76]}>
           <WindifyPopup className="details">
             <span>Initial details</span>
@@ -114,7 +114,7 @@ describe('React sub-components', () => {
     expect((firstPopupOptions?.content as HTMLElement).textContent).toBe('Initial details');
 
     rerender(
-      <MapProvider engine={engine} engineType="maplibre">
+      <MapProvider engine={engine} engineType="leaflet">
         <WindifyMarker position={[106.66, 10.76]}>
           <WindifyPopup className="details">
             <span>Updated details</span>

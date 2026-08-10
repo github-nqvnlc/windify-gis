@@ -5,7 +5,7 @@ import type {
   Geometry,
 } from 'geojson';
 
-export type EngineType = 'leaflet' | 'maplibre';
+export type EngineType = 'leaflet';
 
 export interface MapOptions {
   container: string | HTMLElement;
@@ -137,8 +137,4 @@ export interface WindifyLeafletOptions extends MapOptions {
   baseMapUrl?: string;
   attribution?: string;
   subdomains?: string | string[];
-}
-
-export interface WindifyMapLibreOptions extends MapOptions {
-  style?: string | Record<string, unknown>;
 }

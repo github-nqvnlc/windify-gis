@@ -33,51 +33,11 @@ const nativeMocks = vi.hoisted(() => {
   const leafletGeoJSON = {
     addTo: vi.fn().mockReturnThis(),
   };
-
-  const mapLibreMap = {
-    addLayer: vi.fn(),
-    addSource: vi.fn(),
-    getCenter: vi.fn().mockReturnValue({ lat: 10.76, lng: 106.66 }),
-    getLayer: vi.fn().mockReturnValue({}),
-    getSource: vi.fn().mockReturnValue({}),
-    getZoom: vi.fn().mockReturnValue(12),
-    isStyleLoaded: vi.fn().mockReturnValue(true),
-    off: vi.fn(),
-    on: vi.fn(),
-    once: vi.fn(),
-    remove: vi.fn(),
-    removeLayer: vi.fn(),
-    removeSource: vi.fn(),
-    setCenter: vi.fn(),
-    setLayoutProperty: vi.fn(),
-    setStyle: vi.fn(),
-    setZoom: vi.fn(),
-  };
-  const markerElement = { addEventListener: vi.fn(), title: '' };
-  const mapLibreMarker = {
-    addTo: vi.fn().mockReturnThis(),
-    getElement: vi.fn().mockReturnValue(markerElement),
-    getLngLat: vi.fn().mockReturnValue({ lat: 10.76, lng: 106.66 }),
-    remove: vi.fn(),
-    setLngLat: vi.fn().mockReturnThis(),
-    setPopup: vi.fn().mockReturnThis(),
-  };
-  const mapLibrePopup = {
-    addTo: vi.fn().mockReturnThis(),
-    remove: vi.fn().mockReturnThis(),
-    setDOMContent: vi.fn().mockReturnThis(),
-    setHTML: vi.fn().mockReturnThis(),
-    setLngLat: vi.fn().mockReturnThis(),
-  };
-
   return {
     leafletGeoJSON,
     leafletMap,
     leafletMarker,
     leafletPopup,
-    mapLibreMap,
-    mapLibreMarker,
-    mapLibrePopup,
   };
 });
 
@@ -89,20 +49,6 @@ vi.mock('leaflet', () => ({
     marker: vi.fn().mockReturnValue(nativeMocks.leafletMarker),
     popup: vi.fn().mockReturnValue(nativeMocks.leafletPopup),
     tileLayer: vi.fn().mockReturnValue({ addTo: vi.fn().mockReturnThis() }),
-  },
-}));
-
-vi.mock('maplibre-gl', () => ({
-  default: {
-    Map: vi.fn().mockImplementation(function () {
-      return nativeMocks.mapLibreMap;
-    }),
-    Marker: vi.fn().mockImplementation(function () {
-      return nativeMocks.mapLibreMarker;
-    }),
-    Popup: vi.fn().mockImplementation(function () {
-      return nativeMocks.mapLibrePopup;
-    }),
   },
 }));
 
@@ -122,7 +68,7 @@ describe('React integration across native engines', () => {
     vi.clearAllMocks();
   });
 
-  it.each<EngineType>(['leaflet', 'maplibre'])(
+  it.each<EngineType>(['leaflet'])(
     'mounts and cleans declarative resources with %s',
     async (engine) => {
       const { unmount } = render(
@@ -134,27 +80,13 @@ describe('React integration across native engines', () => {
         </WindifyMap>,
       );
 
-      if (engine === 'leaflet') {
-        await waitFor(() => expect(nativeMocks.leafletMarker.bindPopup).toHaveBeenCalled());
-        expect(nativeMocks.leafletGeoJSON.addTo).toHaveBeenCalledWith(nativeMocks.leafletMap);
-      } else {
-        await waitFor(() => expect(nativeMocks.mapLibreMarker.setPopup).toHaveBeenCalled());
-        expect(nativeMocks.mapLibreMap.addSource).toHaveBeenCalledWith(
-          'windify-geojson-places-source',
-          expect.objectContaining({ type: 'geojson' }),
-        );
-        expect(nativeMocks.mapLibreMap.addLayer).toHaveBeenCalledTimes(3);
-      }
+      await waitFor(() => expect(nativeMocks.leafletMarker.bindPopup).toHaveBeenCalled());
+      expect(nativeMocks.leafletGeoJSON.addTo).toHaveBeenCalledWith(nativeMocks.leafletMap);
 
       unmount();
 
-      if (engine === 'leaflet') {
-        expect(nativeMocks.leafletPopup.remove).toHaveBeenCalled();
-        expect(nativeMocks.leafletMap.remove).toHaveBeenCalled();
-      } else {
-        expect(nativeMocks.mapLibrePopup.remove).toHaveBeenCalled();
-        expect(nativeMocks.mapLibreMap.remove).toHaveBeenCalled();
-      }
+      expect(nativeMocks.leafletPopup.remove).toHaveBeenCalled();
+      expect(nativeMocks.leafletMap.remove).toHaveBeenCalled();
     },
   );
 });

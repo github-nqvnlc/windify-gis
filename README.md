@@ -2,12 +2,11 @@
 
 [English Version](./README_EN.md)
 
-Windify GIS là một package bản đồ GIS hiệu năng cao, đa nền tảng, cung cấp API bản đồ thống nhất trên nhiều engine, cụ thể là **Leaflet** và **MapLibre GL JS**. Package bao gồm một React wrapper hiện đại, giúp phát triển ứng dụng GIS nhanh chóng và dễ dàng.
+Windify GIS là một package bản đồ GIS hiệu năng cao, cung cấp API bản đồ với **Leaflet**. Package bao gồm một React wrapper hiện đại, giúp phát triển ứng dụng GIS nhanh chóng và dễ dàng.
 
 ## 🌟 Tính năng nổi bật
 
-- **Hỗ trợ đa Engine**: Chuyển đổi linh hoạt giữa `leaflet` và `maplibre` với một API thống nhất duy nhất.
-- **Tải động (Dynamic Loading)**: Các engine bản đồ được tải bất đồng bộ theo nhu cầu, tối ưu kích thước bundle và hỗ trợ tree-shaking.
+- **Tải động (Dynamic Loading)**: Engine bản đồ được tải bất đồng bộ theo nhu cầu, tối ưu kích thước bundle và hỗ trợ tree-shaking.
 - **Chuẩn hóa Sự kiện (Event Normalization)**: API sự kiện đồng nhất (`on`, `off`, `once`) với tọa độ chuẩn EPSG:4326 `[longitude, latitude]`.
 - **Quản lý Layer GeoJSON & Tile Layer**: Nạp/xóa/ẩn/hiện các lớp GeoJSON inline object hoặc remote URL với data-driven styling linh hoạt.
 - **Marker & Gom Cụm Điểm (Clustering)**: Thêm Marker tùy chỉnh HTML/SVG và gom cụm điểm tự động hiệu năng cao cho dữ liệu lớn.
@@ -26,11 +25,11 @@ pnpm add @vn-gis/windify-gis
 
 ### Các Peer Dependencies
 
-`leaflet`, `maplibre-gl`, `react` và `react-dom` là **peer dependencies**. Bạn chỉ cần cài đặt những package tương ứng với engine mà bạn sử dụng. Tất cả peer dependencies đều được đánh dấu là **optional**, nên trình quản lý package sẽ không tự động cài đặt chúng.
+`leaflet`, `react` và `react-dom` là **peer dependencies**. Bạn chỉ cần cài đặt những package tương ứng mà bạn sử dụng. Tất cả peer dependencies đều được đánh dấu là **optional**, nên trình quản lý package sẽ không tự động cài đặt chúng.
 
-#### Engine Leaflet
+#### Cài đặt Leaflet
 
-Cài đặt `leaflet` nếu bạn muốn sử dụng `engine="leaflet"`:
+Cài đặt `leaflet` để sử dụng bản đồ:
 
 ```bash
 npm install leaflet
@@ -50,24 +49,6 @@ import 'leaflet/dist/leaflet.css';
 ```
 
 > **⚠️ Lỗi thường gặp:** Nếu bạn thấy bản đồ bị vỡ layout hoặc không có style, rất có thể bạn đang thiếu dòng import CSS ở trên.
-
-#### Engine MapLibre GL JS
-
-Cài đặt `maplibre-gl` nếu bạn muốn sử dụng `engine="maplibre"`:
-
-```bash
-npm install maplibre-gl
-```
-
-| Package       | Phiên bản yêu cầu | Ghi chú                                             |
-| ------------- | ----------------- | --------------------------------------------------- |
-| `maplibre-gl` | `^4.0.0`          | Engine vector tile với WebGL rendering và hỗ trợ 3D |
-
-**Import CSS** — MapLibre GL JS cũng yêu cầu import CSS. Thêm dòng import sau vào file entry của ứng dụng:
-
-```ts
-import 'maplibre-gl/dist/maplibre-gl.css';
-```
 
 #### React (Bắt buộc khi dùng component `<WindifyMap />`)
 
@@ -91,7 +72,7 @@ import { WindifyGeoJSON, WindifyMap, WindifyMarker, WindifyPopup } from '@vn-gis
 const App = () => {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <WindifyMap engine="leaflet" center={[106.660172, 10.762622]} zoom={12}>
+      <WindifyMap center={[106.660172, 10.762622]} zoom={12}>
         <WindifyMarker position={[106.660172, 10.762622]} title="TP. Hồ Chí Minh">
           <WindifyPopup>
             <strong>Trung tâm TP. Hồ Chí Minh</strong>
@@ -144,7 +125,7 @@ GeoJSON. Promise từ `addGeoJSONLayer` sẽ reject nếu URL lỗi, response kh
 liệu không hợp lệ; layer cũ có cùng ID chỉ được thay thế sau khi dữ liệu mới tải thành công.
 
 `style` có thể là object dùng chung hoặc callback chạy riêng cho từng feature. Cùng một callback
-hoạt động trên cả Leaflet và MapLibre cho Point, LineString và Polygon:
+hoạt động với Leaflet cho Point, LineString và Polygon:
 
 ```ts
 await engine.addGeoJSONLayer({
@@ -191,11 +172,10 @@ Phải cung cấp `position` hoặc một `markerId` hợp lệ. Tọa độ lu�
 
 | Prop         | Kiểu                                  | Mặc định            | Mô tả                                   |
 | ------------ | ------------------------------------- | ------------------- | --------------------------------------- |
-| `engine`     | `'leaflet' \| 'maplibre'`             | Bắt buộc            | Engine bản đồ.                          |
+| `engine`     | `'leaflet'`                           | Không bắt buộc      | Engine bản đồ (mặc định 'leaflet').     |
 | `center`     | `[number, number]`                    | Bắt buộc            | Tâm bản đồ theo EPSG:4326 `[lng, lat]`. |
 | `zoom`       | `number`                              | Bắt buộc            | Mức zoom.                               |
 | `baseMapUrl` | `string`                              | `undefined`         | Tile URL cho Leaflet.                   |
-| `styleUrl`   | `string \| Record<string, unknown>`   | `undefined`         | Style URL/object cho MapLibre.          |
 | `className`  | `string`                              | `undefined`         | CSS class của container.                |
 | `style`      | `React.CSSProperties`                 | kích thước mặc định | Inline style của container.             |
 | `onMapReady` | `(engine: IWindifyMapEngine) => void` | `undefined`         | Gọi sau khi engine sẵn sàng.            |
@@ -235,7 +215,7 @@ Phải cung cấp `position` hoặc một `markerId` hợp lệ. Tọa độ lu�
 
 Các sub-component chỉ tạo resource sau khi map sẵn sàng. Khi props cấu trúc thay đổi,
 resource cũ được dọn trước khi tạo resource mới; `visible` và callback được đồng bộ riêng để
-tránh nạp lại không cần thiết. Unmount component hoặc đổi engine sẽ tự động xóa marker, popup,
+tránh nạp lại không cần thiết. Unmount component sẽ tự động xóa marker, popup,
 layer và listener liên quan.
 
 Ví dụ React đầy đủ nằm tại [`examples/react-declarative-map.tsx`](./examples/react-declarative-map.tsx).

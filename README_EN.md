@@ -1,11 +1,10 @@
 # Windify GIS
 
-Windify GIS is a high-performance, cross-platform GIS map package designed to provide a unified mapping API across multiple engines, specifically **Leaflet** and **MapLibre GL JS**. It includes a modern, seamless React wrapper for rapid GIS application development.
+Windify GIS is a high-performance, GIS map package designed to provide a unified mapping API with **Leaflet**. It includes a modern, seamless React wrapper for rapid GIS application development.
 
 ## 🌟 Key Features
 
-- **Multi-Engine Support**: Seamlessly switch between `leaflet` and `maplibre` with a single unified API.
-- **Dynamic Loading**: Map engines are loaded asynchronously on demand, optimizing your application bundle size and tree-shaking capabilities.
+- **Dynamic Loading**: Map engines are loaded asynchronously on demand, optimizing bundle size and supporting tree-shaking capabilities.
 - **Declarative React Components**: Use `<WindifyMap />`, `<WindifyMarker />`, `<WindifyPopup />`, and `<WindifyGeoJSON />` with automatic prop synchronization and cleanup.
 - **Contextual Hooks**: Built-in `useWindifyMap` hook allowing nested components to easily interact with the map instance without passing props.
 - **TypeScript First**: Fully typed interfaces (`IWindifyMapEngine`, `WindifyMapProps`) for excellent developer experience and code safety.
@@ -22,11 +21,11 @@ pnpm add @vn-gis/windify-gis
 
 ### Peer Dependencies
 
-`leaflet`, `maplibre-gl`, `react`, and `react-dom` are **peer dependencies**. You only need to install the ones required by the engine(s) you plan to use. All peer dependencies are marked as **optional**, so your package manager will not install them automatically.
+`leaflet`, `react`, and `react-dom` are **peer dependencies**. You only need to install the ones you plan to use. All peer dependencies are marked as **optional**, so your package manager will not install them automatically.
 
-#### Leaflet Engine
+#### Leaflet Installation
 
-Install `leaflet` if you plan to use `engine="leaflet"`:
+Install `leaflet` if you plan to use the map:
 
 ```bash
 npm install leaflet
@@ -47,26 +46,6 @@ import 'leaflet/dist/leaflet.css';
 
 > **⚠️ Common Issue:** If you see an unstyled or broken map layout, you are most likely missing the CSS import above.
 
-#### MapLibre GL JS Engine
-
-Install `maplibre-gl` if you plan to use `engine="maplibre"`:
-
-```bash
-npm install maplibre-gl
-```
-
-| Package       | Required Version | Notes                                                  |
-| ------------- | ---------------- | ------------------------------------------------------ |
-| `maplibre-gl` | `^4.0.0`         | Vector tile engine with WebGL rendering and 3D support |
-
-**CSS Import** — MapLibre GL JS also requires its CSS to be imported. Add the following import to your application entry point:
-
-```ts
-import 'maplibre-gl/dist/maplibre-gl.css';
-```
-
-> **💡 Tip:** MapLibre GL JS ships with built-in TypeScript type definitions — no separate `@types` package is needed.
-
 #### React (Required for `<WindifyMap />` component)
 
 If you are using the React wrapper (`@vn-gis/windify-gis/react`), make sure `react` and `react-dom` are installed:
@@ -80,16 +59,16 @@ npm install react react-dom
 | `react`     | `^18.0.0 \|\| ^19.0.0` | React 18 or 19 supported      |
 | `react-dom` | `^18.0.0 \|\| ^19.0.0` | Must match your React version |
 
-#### Example: Full Install for Both Engines with React
+#### Example: Full Install
 
 ```bash
-npm install leaflet maplibre-gl react react-dom
+npm install leaflet react react-dom
 npm install -D @types/leaflet @types/react @types/react-dom
 ```
 
 ## 🚀 Quick Start (React)
 
-Using Windify GIS in your React application is incredibly simple. Import the `<WindifyMap />` component and specify your preferred engine.
+Using Windify GIS in your React application is incredibly simple. Import the `<WindifyMap />` component.
 
 ```tsx
 import React from 'react';
@@ -99,7 +78,6 @@ const App = () => {
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
       <WindifyMap
-        engine="leaflet" // or "maplibre"
         center={[106.660172, 10.762622]} // [longitude, latitude]
         zoom={12}
         baseMapUrl="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -146,10 +124,9 @@ const App = () => {
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100vw' }}>
       <WindifyMap
-        engine="maplibre"
         center={[105.83416, 21.027763]}
         zoom={10}
-        styleUrl="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+        baseMapUrl="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       >
         <CenterMapButton />
       </WindifyMap>
@@ -166,11 +143,10 @@ export default App;
 
 | Prop         | Type                                  | Default                                                 | Description                                                       |
 | ------------ | ------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
-| `engine`     | `'leaflet' \| 'maplibre'`             | **Required**                                            | The map engine implementation to render.                          |
-| `center`     | `[number, number]`                    | **Required**                                            | Center point in EPSG:4326 format `[longitude, latitude]`.         |
-| `zoom`       | `number`                              | **Required**                                            | Initial zoom level.                                               |
-| `baseMapUrl` | `string`                              | `undefined`                                             | Raster tile URL template (primarily for Leaflet).                 |
-| `styleUrl`   | `string \| object`                    | `undefined`                                             | MapLibre style JSON URL or StyleSpecification object.             |
+| `engine`     | `'leaflet'`                           | Optional                                                | The map engine implementation to render (default 'leaflet').      |
+| `center`     | `[number, number]`                    | **Required**                                            | The map center in EPSG:4326 `[lng, lat]`.                         |
+| `zoom`       | `number`                              | **Required**                                            | The map zoom level.                                               |
+| `baseMapUrl` | `string`                              | `undefined`                                             | Tile URL for Leaflet.                                             |
 | `className`  | `string`                              | `undefined`                                             | CSS class for the map container.                                  |
 | `style`      | `React.CSSProperties`                 | `{ width: '100%', height: '100%', minHeight: '400px' }` | Inline styles for the map container.                              |
 | `onMapReady` | `(engine: IWindifyMapEngine) => void` | `undefined`                                             | Callback fired once the map instance is successfully initialized. |
@@ -187,7 +163,7 @@ If you are using the core engine directly without React, or accessing it via `on
 - `setZoom(zoom: number): void`
 - `getZoom(): number`
 - `setBaseMap(options: BaseMapOptions | string): void`
-- `getNativeMap(): unknown` (Returns the raw Leaflet `L.Map` or MapLibre `maplibregl.Map` instance for advanced native operations).
+- `getNativeMap(): unknown` (Returns the raw Leaflet `L.Map` instance for advanced native operations).
 - `addGeoJSONLayer(options: GeoJSONLayerOptions): Promise<void>`
 - `removeLayer(id: string): void`
 - `setLayerVisibility(id: string, visible: boolean): void`
@@ -206,7 +182,7 @@ If you are using the core engine directly without React, or accessing it via `on
 invalid. An existing layer with the same ID is replaced only after the new document loads.
 
 Pass a style object for a shared style or a callback for per-feature styling. The same callback
-works with Point, LineString, and Polygon data in both Leaflet and MapLibre:
+works with Point, LineString, and Polygon data in Leaflet:
 
 ```ts
 await engine.addGeoJSONLayer({
@@ -283,22 +259,18 @@ Nest a popup to bind it to a marker, or provide `position` to open a standalone 
 | `onClick` | `(feature: GeoJSONFeature, event: WindifyMapEvent) => void` | `undefined` | Receives the latest feature click callback.    |
 | `onError` | `(error: Error) => void`                                    | `undefined` | Handles load, validation, or rendering errors. |
 
-See [`examples/react-declarative-map.tsx`](./examples/react-declarative-map.tsx) for a complete
-example that can switch between Leaflet and MapLibre.
+See [`examples/react-declarative-map.tsx`](./examples/react-declarative-map.tsx) for a complete example.
 
 ### Direct Engine Imports (Advanced)
 
-If you need to use the engine classes directly without the React wrapper, import them from their respective sub-paths. This ensures your bundler only resolves the peer dependency you actually use:
+If you need to use the engine class directly without the React wrapper, import it from its sub-path. This ensures your bundler only resolves the peer dependency you actually use:
 
 ```ts
-// Only resolves "leaflet" — does NOT require "maplibre-gl"
+// Only resolves "leaflet"
 import { WindifyLeaflet } from '@vn-gis/windify-gis/core/leaflet';
-
-// Only resolves "maplibre-gl" — does NOT require "leaflet"
-import { WindifyMapLibre } from '@vn-gis/windify-gis/core/maplibre';
 ```
 
-> **⚠️ Important:** Do NOT import `WindifyLeaflet` or `WindifyMapLibre` from the root entry (`@vn-gis/windify-gis`). Use the sub-path imports above to avoid unnecessary peer dependency resolution.
+> **⚠️ Important:** Do NOT import `WindifyLeaflet` from the root entry (`@vn-gis/windify-gis`). Use the sub-path import above to avoid unnecessary peer dependency resolution.
 
 ## ⚠️ Error Handling
 

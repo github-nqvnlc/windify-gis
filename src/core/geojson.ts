@@ -1,23 +1,5 @@
 import type { Geometry, Position } from 'geojson';
-import type { GeoJSONData, GeoJSONFeature, GeoJSONStyle, GeoJSONStyleFunction } from './types';
-
-export const MAPLIBRE_STYLE_PROPERTIES = {
-  color: '__windify_style_color',
-  fillColor: '__windify_style_fill_color',
-  fillOpacity: '__windify_style_fill_opacity',
-  opacity: '__windify_style_opacity',
-  radius: '__windify_style_radius',
-  weight: '__windify_style_weight',
-} as const satisfies Record<keyof GeoJSONStyle, string>;
-
-const NULL_PROPERTIES_FLAG = '__windify_style_null_properties';
-const STYLE_PROPERTY_ENTRIES = Object.entries(MAPLIBRE_STYLE_PROPERTIES) as Array<
-  [keyof GeoJSONStyle, string]
->;
-const INTERNAL_STYLE_PROPERTIES = new Set([
-  ...Object.values(MAPLIBRE_STYLE_PROPERTIES),
-  NULL_PROPERTIES_FLAG,
-]);
+import type { GeoJSONData, GeoJSONFeature } from './types';
 
 type GeoJSONDocument = Exclude<GeoJSONData, string>;
 type UnknownRecord = Record<string, unknown>;
@@ -148,61 +130,4 @@ export const loadGeoJSON = async (data: GeoJSONData): Promise<GeoJSONDocument> =
   }
 
   return value;
-};
-
-const addStyleProperties = (
-  feature: GeoJSONFeature,
-  getStyle: GeoJSONStyleFunction,
-): GeoJSONFeature => {
-  const style = getStyle(feature);
-  const properties: UnknownRecord = { ...(feature.properties ?? {}) };
-
-  for (const [styleKey, propertyKey] of STYLE_PROPERTY_ENTRIES) {
-    const value = style[styleKey];
-    if (value !== undefined) {
-      properties[propertyKey] = value;
-    }
-  }
-
-  if (feature.properties === null) {
-    properties[NULL_PROPERTIES_FLAG] = true;
-  }
-
-  return { ...feature, properties };
-};
-
-/** Adds private properties consumed by MapLibre data-driven paint expressions. */
-export const addMapLibreStyleProperties = (
-  data: GeoJSONDocument,
-  getStyle: GeoJSONStyleFunction,
-): GeoJSONDocument => {
-  if (data.type === 'Feature') {
-    return addStyleProperties(data, getStyle);
-  }
-
-  if (data.type === 'FeatureCollection') {
-    return {
-      ...data,
-      features: data.features.map((feature) => addStyleProperties(feature, getStyle)),
-    };
-  }
-
-  return data;
-};
-
-/** Removes private MapLibre styling properties before exposing a clicked feature. */
-export const removeMapLibreStyleProperties = (feature: GeoJSONFeature): GeoJSONFeature => {
-  const properties: UnknownRecord = {};
-  const sourceProperties = feature.properties ?? {};
-
-  for (const [key, value] of Object.entries(sourceProperties)) {
-    if (!INTERNAL_STYLE_PROPERTIES.has(key)) {
-      properties[key] = value;
-    }
-  }
-
-  return {
-    ...feature,
-    properties: sourceProperties[NULL_PROPERTIES_FLAG] === true ? null : properties,
-  };
 };

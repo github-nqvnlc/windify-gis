@@ -28,26 +28,6 @@ vi.mock('leaflet', () => {
   };
 });
 
-vi.mock('maplibre-gl', () => {
-  const mockMap = {
-    remove: vi.fn(),
-    setCenter: vi.fn(),
-    getCenter: vi.fn().mockReturnValue({ lng: 106.660172, lat: 10.762622 }),
-    setZoom: vi.fn(),
-    getZoom: vi.fn().mockReturnValue(10),
-    setStyle: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-  };
-  return {
-    default: {
-      Map: vi.fn().mockImplementation(function (this: unknown) {
-        return mockMap;
-      }),
-    },
-  };
-});
-
 describe('<WindifyMap /> & useWindifyMap()', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,26 +52,6 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
     const engineInstance = onMapReady.mock.calls[0][0];
     expect(engineInstance).toBeDefined();
     expect(engineInstance.getCenter()).toEqual([106.660172, 10.762622]);
-  });
-
-  it('renders MapLibre map engine correctly and calls onMapReady', async () => {
-    const onMapReady = vi.fn();
-
-    render(
-      <WindifyMap
-        engine="maplibre"
-        center={[106.660172, 10.762622]}
-        zoom={10}
-        onMapReady={onMapReady}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(onMapReady).toHaveBeenCalledTimes(1);
-    });
-
-    const engineInstance = onMapReady.mock.calls[0][0];
-    expect(engineInstance).toBeDefined();
   });
 
   it('provides map engine instance to child components via useWindifyMap', async () => {
@@ -235,71 +195,6 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
     });
   });
 
-  it('handles styleUrl updates dynamically for MapLibre', async () => {
-    const onMapReady = vi.fn();
-
-    const { rerender } = render(
-      <WindifyMap
-        engine="maplibre"
-        center={[106.660172, 10.762622]}
-        zoom={10}
-        styleUrl="https://demotiles.maplibre.org/style.json"
-        onMapReady={onMapReady}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(onMapReady).toHaveBeenCalledTimes(1);
-    });
-
-    const engine = onMapReady.mock.calls[0][0];
-    const setStyleSpy = vi.spyOn(engine, 'setStyle');
-
-    rerender(
-      <WindifyMap
-        engine="maplibre"
-        center={[106.660172, 10.762622]}
-        zoom={10}
-        styleUrl="https://demotiles.maplibre.org/dark-style.json"
-        onMapReady={onMapReady}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(setStyleSpy).toHaveBeenCalledWith('https://demotiles.maplibre.org/dark-style.json');
-    });
-  });
-
-  it('switches engine dynamically when engine prop changes', async () => {
-    const onMapReady = vi.fn();
-
-    const { rerender } = render(
-      <WindifyMap
-        engine="leaflet"
-        center={[106.660172, 10.762622]}
-        zoom={10}
-        onMapReady={onMapReady}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(onMapReady).toHaveBeenCalledTimes(1);
-    });
-
-    rerender(
-      <WindifyMap
-        engine="maplibre"
-        center={[106.660172, 10.762622]}
-        zoom={10}
-        onMapReady={onMapReady}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(onMapReady).toHaveBeenCalledTimes(2);
-    });
-  });
-
   it('returns default context when useWindifyMap is used outside Provider', () => {
     let result: ReturnType<typeof useWindifyMap> | null = null;
     const TestComponent = () => {
@@ -334,35 +229,5 @@ describe('<WindifyMap /> & useWindifyMap()', () => {
     });
 
     vi.doUnmock('../core/leaflet');
-  });
-
-  it('clears error state when engine prop changes to a valid engine', async () => {
-    vi.doMock('../core/leaflet', () => ({
-      WindifyLeaflet: class {
-        constructor() {
-          throw new Error('Could not resolve "leaflet". Is it installed?');
-        }
-      },
-    }));
-
-    const { WindifyMap: WindifyMapFresh } = await import('./WindifyMap');
-
-    const { container, rerender } = render(
-      <WindifyMapFresh engine="leaflet" center={[106.660172, 10.762622]} zoom={10} />,
-    );
-
-    await waitFor(() => {
-      const alert = container.querySelector('[role="alert"]');
-      expect(alert).not.toBeNull();
-    });
-
-    vi.doUnmock('../core/leaflet');
-
-    rerender(<WindifyMapFresh engine="maplibre" center={[106.660172, 10.762622]} zoom={10} />);
-
-    await waitFor(() => {
-      const alert = container.querySelector('[role="alert"]');
-      expect(alert).toBeNull();
-    });
   });
 });
