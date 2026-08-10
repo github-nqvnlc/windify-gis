@@ -1,6 +1,6 @@
 {
   "name": "@vn-gis/windify-gis",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "GIS Map Package supporting Leaflet and React",
   "repository": {
     "type": "git",
