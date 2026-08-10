@@ -22,6 +22,10 @@ export interface WindifyMapProps {
   center: [number, number];
   /** Map zoom level. */
   zoom: number;
+  /** Minimum allowed zoom level for the map. */
+  minZoom?: number;
+  /** Maximum allowed zoom level for the map. */
+  maxZoom?: number;
   /** Optional base map tile URL template (e.g. OpenStreetMap tile URL for Leaflet). */
   baseMapUrl?: string;
   /** Optional MapLibre style JSON URL or StyleSpecification object. */
@@ -59,6 +63,8 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
   engine,
   center,
   zoom,
+  minZoom,
+  maxZoom,
   baseMapUrl,
   styleUrl,
   className,
@@ -100,6 +106,8 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
             container,
             center,
             zoom,
+            minZoom,
+            maxZoom,
             baseMapUrl: resolvedMap.url,
             attribution: resolvedMap.attribution,
           });
@@ -110,6 +118,8 @@ export const WindifyMap: React.FC<WindifyMapProps> = ({
             container,
             center,
             zoom,
+            minZoom,
+            maxZoom,
             style: styleUrl,
           });
         }

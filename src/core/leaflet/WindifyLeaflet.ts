@@ -55,6 +55,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       zoom: this.zoom,
       minZoom: this.minZoom,
       maxZoom: this.maxZoom,
+      zoomControl: false,
     };
 
     if (this.maxBounds) {
