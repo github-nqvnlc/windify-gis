@@ -93,7 +93,7 @@ const App = () => {
 export default App;
 ```
 
-## 📖 Tài liệu API (v1.1.0)
+## 📖 Tài liệu API (v1.2.0)
 
 ### 1. Unified Engine Methods (`IWindifyMapEngine`)
 
@@ -104,6 +104,7 @@ export default App;
 - `setZoom(zoom: number): void` — Đặt mức zoom.
 - `getZoom(): number` — Lấy mức zoom hiện tại.
 - `setBaseMap(options: BaseMapOptions | string): void` — Thay đổi base map.
+- `getNativeMap(): unknown` — Lấy instance của map engine gốc (ví dụ: đối tượng Leaflet Map).
 - `on(type: WindifyEventType, listener: WindifyEventListener): void` — Lắng nghe sự kiện bản đồ (`click`, `dblclick`, `mousemove`, `mouseleave`, `dragend`, `zoomend`).
 - `off(type: WindifyEventType, listener: WindifyEventListener): void` — Hủy lắng nghe sự kiện.
 - `once(type: WindifyEventType, listener: WindifyEventListener): void` — Lắng nghe sự kiện 1 lần.
@@ -174,7 +175,9 @@ Phải cung cấp `position` hoặc một `markerId` hợp lệ. Tọa độ lu�
 | ------------ | ------------------------------------- | ------------------- | --------------------------------------- |
 | `engine`     | `'leaflet'`                           | Không bắt buộc      | Engine bản đồ (mặc định 'leaflet').     |
 | `center`     | `[number, number]`                    | Bắt buộc            | Tâm bản đồ theo EPSG:4326 `[lng, lat]`. |
-| `zoom`       | `number`                              | Bắt buộc            | Mức zoom.                               |
+| `zoom`       | `number`                              | Bắt buộc            | Mức zoom ban đầu.                       |
+| `minZoom`    | `number`                              | `undefined`         | Mức zoom tối thiểu cho phép.            |
+| `maxZoom`    | `number`                              | `undefined`         | Mức zoom tối đa cho phép.               |
 | `baseMapUrl` | `string`                              | `undefined`         | Tile URL cho Leaflet.                   |
 | `className`  | `string`                              | `undefined`         | CSS class của container.                |
 | `style`      | `React.CSSProperties`                 | kích thước mặc định | Inline style của container.             |

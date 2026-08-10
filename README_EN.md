@@ -145,7 +145,9 @@ export default App;
 | ------------ | ------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
 | `engine`     | `'leaflet'`                           | Optional                                                | The map engine implementation to render (default 'leaflet').      |
 | `center`     | `[number, number]`                    | **Required**                                            | The map center in EPSG:4326 `[lng, lat]`.                         |
-| `zoom`       | `number`                              | **Required**                                            | The map zoom level.                                               |
+| `zoom`       | `number`                              | **Required**                                            | The initial map zoom level.                                       |
+| `minZoom`    | `number`                              | `undefined`                                             | Minimum allowed zoom level for the map.                           |
+| `maxZoom`    | `number`                              | `undefined`                                             | Maximum allowed zoom level for the map.                           |
 | `baseMapUrl` | `string`                              | `undefined`                                             | Tile URL for Leaflet.                                             |
 | `className`  | `string`                              | `undefined`                                             | CSS class for the map container.                                  |
 | `style`      | `React.CSSProperties`                 | `{ width: '100%', height: '100%', minHeight: '400px' }` | Inline styles for the map container.                              |
