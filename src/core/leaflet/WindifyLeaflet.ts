@@ -47,7 +47,8 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       return;
     }
 
-    const defaultUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+    const defaultUrl =
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
     const leafletCenter: [number, number] = [this.center[1], this.center[0]];
 
     const mapOptions: L.MapOptions = {
