@@ -516,10 +516,18 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
     const id = options.id || `popup_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     if (this.popups.has(id)) this.removePopup(id);
 
-    const popup = L.popup({
+    const popupOpts: L.PopupOptions = {
       className: options.className,
       closeButton: options.closeButton,
-    }).setContent(options.content);
+    };
+    if (options.offset) {
+      popupOpts.offset = options.offset;
+    }
+    const popup = L.popup(popupOpts).setContent(options.content);
+
+    if (options.onClose) {
+      popup.on('remove', options.onClose);
+    }
 
     if (options.markerId) {
       marker?.bindPopup(popup);

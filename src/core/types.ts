@@ -77,6 +77,8 @@ interface PopupBaseOptions {
   content: HTMLElement | string;
   className?: string;
   closeButton?: boolean;
+  offset?: [number, number];
+  onClose?: () => void;
 }
 
 export type PopupOptions = PopupBaseOptions &
