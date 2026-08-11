@@ -46,6 +46,7 @@ export interface GeoJSONStyle {
   weight?: number;
   opacity?: number;
   radius?: number;
+  dashArray?: string;
 }
 
 export type GeoJSONFeature = GeoJSONFeatureType<Geometry | null, GeoJsonProperties>;

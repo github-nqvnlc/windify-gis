@@ -238,6 +238,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
         if (s.color !== undefined) res.color = s.color;
         if (s.weight !== undefined) res.weight = s.weight;
         if (s.opacity !== undefined) res.opacity = s.opacity;
+        if (s.dashArray !== undefined) res.dashArray = s.dashArray;
         return res;
       };
     } else if (typeof styleOption === 'object' && styleOption !== null) {
@@ -247,6 +248,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       if (styleOption.color !== undefined) leafletStyle.color = styleOption.color;
       if (styleOption.weight !== undefined) leafletStyle.weight = styleOption.weight;
       if (styleOption.opacity !== undefined) leafletStyle.opacity = styleOption.opacity;
+      if (styleOption.dashArray !== undefined) leafletStyle.dashArray = styleOption.dashArray;
     }
 
     let layer: L.GeoJSON;
