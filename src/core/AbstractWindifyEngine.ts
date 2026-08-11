@@ -12,7 +12,7 @@ import type {
 } from './types';
 
 export abstract class AbstractWindifyEngine implements IWindifyMapEngine {
-  protected container: string | HTMLElement;
+  protected container?: string | HTMLElement;
   protected center: [number, number]; // EPSG:4326 [longitude, latitude]
   protected zoom: number;
   protected minZoom?: number;

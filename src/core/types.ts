@@ -8,7 +8,7 @@ import type {
 export type EngineType = 'leaflet';
 
 export interface MapOptions {
-  container: string | HTMLElement;
+  container?: string | HTMLElement;
   center: [number, number]; // EPSG:4326 [longitude, latitude]
   zoom: number;
   minZoom?: number;

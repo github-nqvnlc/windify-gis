@@ -25,6 +25,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
   private popups = new Map<string, { popup: L.Popup; markerId?: string }>();
   private clusters = new Map<string, { group: L.LayerGroup; markers: L.Marker[] }>();
   private eventHandlers = new Map<string, (e: unknown) => void>();
+  private pendingBaseMapOptions?: BaseMapOptions | string;
 
   constructor(options: WindifyLeafletOptions) {
     super(options);
@@ -47,6 +48,10 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       return;
     }
 
+    if (!this.container) {
+      return;
+    }
+
     const defaultUrl =
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
     const leafletCenter: [number, number] = [this.center[1], this.center[0]];
@@ -64,7 +69,7 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       mapOptions.maxBounds = L.latLngBounds([swLat, swLng], [neLat, neLng]);
     }
 
-    this.map = L.map(this.container, mapOptions);
+    this.map = L.map(this.container as string | HTMLElement, mapOptions);
 
     // Xóa cờ Ukraine khỏi prefix mặc định của Leaflet
     if (this.map.attributionControl) {
@@ -73,9 +78,14 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
       );
     }
 
-    this.tileLayer = L.tileLayer(defaultUrl, {
-      attribution: this.defaultAttribution,
-    }).addTo(this.map);
+    if (this.pendingBaseMapOptions) {
+      this.setBaseMap(this.pendingBaseMapOptions);
+      this.pendingBaseMapOptions = undefined;
+    } else {
+      this.tileLayer = L.tileLayer(defaultUrl, {
+        attribution: this.defaultAttribution,
+      }).addTo(this.map);
+    }
 
     this.setupMapEvents();
     this.isMounted = true;
@@ -161,7 +171,10 @@ export class WindifyLeaflet extends AbstractWindifyEngine {
   }
 
   public setBaseMap(options: BaseMapOptions | string): void {
-    if (!this.map) return;
+    if (!this.map) {
+      this.pendingBaseMapOptions = options;
+      return;
+    }
 
     if (this.tileLayer) {
       this.map.removeLayer(this.tileLayer);
