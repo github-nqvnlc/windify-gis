@@ -95,6 +95,8 @@ export default App;
 
 ## 📖 Tài liệu API (v1.2.0)
 
+> **Tài liệu hướng dẫn và ví dụ chi tiết:** Truy cập [gis-docs.windify.net](https://gis-docs.windify.net)
+
 ### 1. Unified Engine Methods (`IWindifyMapEngine`)
 
 - `mount(container?: string | HTMLElement): void` — Gắn bản đồ vào DOM.
